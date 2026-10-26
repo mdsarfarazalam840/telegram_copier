@@ -1,0 +1,1 @@
+{"nodes": [{"id": "appwrite_deploy_md", "label": "Appwrite Deployment", "file_type": "document", "source_file": "APPWRITE_DEPLOY.md"}], "edges": [{"source": "appwrite_deploy_md", "target": "webhook_main", "relation": "references", "confidence": "INFERRED", "confidence_score": 0.95, "source_file": "APPWRITE_DEPLOY.md"}], "hyperedges": []}

@@ -1,0 +1,94 @@
+{
+  "F:\\telegram-cp\\telegram_copier\\config.py": {
+    "mtime": 1771259466.494566,
+    "hash": "ddeebc2b4a81744cb67b0656dcda51e6"
+  },
+  "F:\\telegram-cp\\telegram_copier\\generate_session_string.py": {
+    "mtime": 1771496322.1775892,
+    "hash": "26ccabb4b480a056ac52059f57dd7620"
+  },
+  "F:\\telegram-cp\\telegram_copier\\main.py": {
+    "mtime": 1771308009.0887544,
+    "hash": "eb0406bdf62f9124d331f941406c65da"
+  },
+  "F:\\telegram-cp\\telegram_copier\\print_dialog_ids.py": {
+    "mtime": 1771259135.709165,
+    "hash": "df1af5a4f1520d4a6203a16f38883fa5"
+  },
+  "F:\\telegram-cp\\telegram_copier\\__init__.py": {
+    "mtime": 1771226194.726571,
+    "hash": "a8cada83e193db22b6ad4b2952305ef2"
+  },
+  "F:\\telegram-cp\\telegram_copier\\appwrite\\functions\\album_flush\\src\\main.py": {
+    "mtime": 1771495640.7439206,
+    "hash": "39336b4ce459cd19496a4cec61226cbc"
+  },
+  "F:\\telegram-cp\\telegram_copier\\appwrite\\functions\\webhook\\src\\main.py": {
+    "mtime": 1773049097.9414191,
+    "hash": "58d7742db59bdbb7b7254d5b8d8e7561"
+  },
+  "F:\\telegram-cp\\telegram_copier\\tests\\test_appwrite_album_flush.py": {
+    "mtime": 1771495679.6898224,
+    "hash": "15e25d55ba3db1863261f475c4816f62"
+  },
+  "F:\\telegram-cp\\telegram_copier\\tests\\test_appwrite_webhook.py": {
+    "mtime": 1773049070.3275702,
+    "hash": "90b1eeea8cb563c1d182bfbd47d52def"
+  },
+  "F:\\telegram-cp\\telegram_copier\\tests\\test_config.py": {
+    "mtime": 1771259495.137782,
+    "hash": "18ae38db87305cd178cd294e6034d59b"
+  },
+  "F:\\telegram-cp\\telegram_copier\\tests\\test_main.py": {
+    "mtime": 1771308026.4033763,
+    "hash": "cd1d4eec4187e7f3aefb7dd2118cc225"
+  },
+  "F:\\telegram-cp\\telegram_copier\\AGENTS.md": {
+    "mtime": 1771949773.487393,
+    "hash": "706be8f746cfb54c4860c73760b628a6"
+  },
+  "F:\\telegram-cp\\telegram_copier\\AI.Readme.md": {
+    "mtime": 1772017510.899484,
+    "hash": "27150a63289dbcd40468a14b26072175"
+  },
+  "F:\\telegram-cp\\telegram_copier\\APPWRITE_DEPLOY.md": {
+    "mtime": 1772899834.5310242,
+    "hash": "d278339a6a6043d9b48e6efe0eb8d9c6"
+  },
+  "F:\\telegram-cp\\telegram_copier\\CHANGELOG.md": {
+    "mtime": 1773051086.9518697,
+    "hash": "aa8e93f9f821839fe623fdbf0e6b1186"
+  },
+  "F:\\telegram-cp\\telegram_copier\\docker-compose.dev.yml": {
+    "mtime": 1771307502.0354195,
+    "hash": "266ce8687bc9725d5ca435c56e39cae3"
+  },
+  "F:\\telegram-cp\\telegram_copier\\docker-compose.prod.yml": {
+    "mtime": 1771307800.4548595,
+    "hash": "a885b967c84cba857150bcdd6726210b"
+  },
+  "F:\\telegram-cp\\telegram_copier\\README.md": {
+    "mtime": 1777944410.6387331,
+    "hash": "b342823237b3292dd9c0848ffb935da0"
+  },
+  "F:\\telegram-cp\\telegram_copier\\RELEASE.md": {
+    "mtime": 1773051086.9598458,
+    "hash": "5475384c609661878c55aef4fdbb90c2"
+  },
+  "F:\\telegram-cp\\telegram_copier\\requirements-dev.txt": {
+    "mtime": 1771226563.5083704,
+    "hash": "36686f6db7f083bd4f673c7d1c35bc4b"
+  },
+  "F:\\telegram-cp\\telegram_copier\\requirements.txt": {
+    "mtime": 1771225390.2479265,
+    "hash": "bdd29da00c47e062c295aa3bf4f3da72"
+  },
+  "F:\\telegram-cp\\telegram_copier\\appwrite\\functions\\album_flush\\requirements.txt": {
+    "mtime": 1771495535.5979772,
+    "hash": "8b788a2bd22c8a2e68465bf04877cba0"
+  },
+  "F:\\telegram-cp\\telegram_copier\\appwrite\\functions\\webhook\\requirements.txt": {
+    "mtime": 1771495979.5194693,
+    "hash": "acfe7f38bf54443077cb0eee0d75e322"
+  }
+}

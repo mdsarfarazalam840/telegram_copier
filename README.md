@@ -205,6 +205,11 @@ python -m pytest -q
   - Do not merge if CI tests fail.
   - If deployment-related files changed (`appwrite.json`, `appwrite/functions/**`), include explicit deploy notes in PR.
 
+## For Listing the channels
+
+Use py print_dialog_ids.py to print all channels
+
+
 ## Next Features Roadmap
 
 Planned near-term improvements:

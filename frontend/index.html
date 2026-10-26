@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0b0d10" />
+    <meta name="description" content="Relayroom — a calm control room for your Telegram content pipeline." />
+    <title>Relayroom · Telegram Copier</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Main navigation">
+        <a class="brand" href="#top" aria-label="Relayroom home">
+          <span class="brand-mark"><i></i><i></i><i></i></span>
+          <span>relayroom</span>
+        </a>
+        <p class="sidebar-kicker">TELEGRAM COPIER <span>v1.0</span></p>
+        <nav class="nav-list">
+          <a class="nav-item active" href="#overview"><span class="nav-icon">◈</span>Overview</a>
+          <a class="nav-item" href="#sources"><span class="nav-icon">⌁</span>Sources</a>
+          <a class="nav-item" href="#activity"><span class="nav-icon">↗</span>Activity</a>
+          <a class="nav-item" href="#policies"><span class="nav-icon">◌</span>Policies</a>
+        </nav>
+        <div class="sidebar-spacer"></div>
+        <div class="mini-status">
+          <span class="pulse-dot"></span>
+          <div><strong>All systems clear</strong><small>Last checked just now</small></div>
+        </div>
+        <div class="sidebar-footer">
+          <button class="avatar-button" aria-label="Open profile">AR</button>
+          <div class="profile-copy"><strong>Admin room</strong><small>Owner access</small></div>
+          <button class="more-button" aria-label="More options">•••</button>
+        </div>
+      </aside>
+
+      <main class="main-content" id="top">
+        <header class="topbar">
+          <div class="breadcrumb"><span>Workspace</span><b>/</b><strong>Control room</strong></div>
+          <div class="topbar-actions">
+            <span class="live-label"><i></i>Live mode</span>
+            <button class="icon-button" aria-label="Notifications"><span class="notification-dot"></span>♢</button>
+            <button class="help-button">?</button>
+          </div>
+        </header>
+
+        <section class="page-intro" id="overview">
+          <div>
+            <p class="eyebrow"><span class="eyebrow-line"></span>THE QUIET SIDE OF PUBLISHING</p>
+            <h1>Keep the signal.<br /><em>Lose the noise.</em></h1>
+            <p class="intro-copy">One clear view of everything moving from your source channels to the destination. Clean, deduplicated, and ready to land.</p>
+          </div>
+          <div class="intro-actions">
+            <button class="button button-primary" id="run-button"><span class="button-orbit">✦</span><span>Run sync now</span><span class="button-arrow">↗</span></button>
+            <p class="schedule-note"><span class="schedule-dot"></span>Next scheduled run in <strong id="countdown">08:42</strong></p>
+          </div>
+        </section>
+
+        <section class="hero-grid">
+          <article class="route-card card-surface">
+            <div class="card-heading">
+              <div><p class="section-label">LIVE ROUTE</p><h2>One stream, two shores.</h2></div>
+              <span class="status-chip"><i></i>Healthy</span>
+            </div>
+            <div class="route-stage">
+              <div class="route-node source-node">
+                <span class="node-icon source-icon">⌁</span>
+                <div><small>SOURCE FIELD</small><strong>3 channels</strong></div>
+              </div>
+              <div class="route-visual" aria-label="3D relay core visualization">
+                <canvas id="relay-canvas"></canvas>
+                <span class="orbit-label label-top">FETCH</span>
+                <span class="orbit-label label-bottom">RELAY CORE</span>
+              </div>
+              <div class="route-node destination-node">
+                <span class="node-icon destination-icon">↗</span>
+                <div><small>DESTINATION</small><strong>1 channel</strong></div>
+              </div>
+              <div class="route-line line-one"><span></span><span></span><span></span></div>
+              <div class="route-line line-two"><span></span><span></span><span></span></div>
+            </div>
+            <div class="route-footer">
+              <div class="route-stat"><span class="stat-dot green"></span><span>Connection stable</span><strong>99.98%</strong></div>
+              <div class="route-meta">Last pulse <strong id="last-pulse">10:42:18 IST</strong></div>
+            </div>
+          </article>
+
+          <article class="run-card card-surface">
+            <div class="card-heading"><div><p class="section-label">LATEST RUN</p><h2 id="run-state">Completed cleanly</h2></div><span class="run-time">10:42 <small>IST</small></span></div>
+            <div class="run-summary"><span class="success-symbol">✓</span><div><strong>Everything is in rhythm.</strong><p>3 sources checked · 0 errors</p></div></div>
+            <div class="run-metrics">
+              <div><span>Duration</span><strong>18.4s</strong></div>
+              <div><span>Window</span><strong>60 min</strong></div>
+              <div><span>Snapshot</span><strong>Saved</strong></div>
+            </div>
+            <div class="run-progress"><div class="progress-label"><span>Run health</span><strong>100%</strong></div><div class="progress-track"><span></span></div></div>
+            <button class="text-button" id="details-button">View run details <span>↗</span></button>
+          </article>
+        </section>
+
+        <section class="metric-grid" aria-label="Latest run metrics">
+          <article class="metric-card accent-cyan"><span class="metric-icon">↘</span><p>Messages fetched</p><strong id="fetched-value">148</strong><small><b>+12%</b> vs last run</small></article>
+          <article class="metric-card accent-peach"><span class="metric-icon">↗</span><p>Copied to destination</p><strong id="copied-value">118</strong><small><b>79.7%</b> delivery rate</small></article>
+          <article class="metric-card accent-lavender"><span class="metric-icon">◌</span><p>Held by filters</p><strong id="held-value">24</strong><small><b>16.2%</b> quietly removed</small></article>
+          <article class="metric-card accent-yellow"><span class="metric-icon">≋</span><p>Links scrubbed</p><strong id="scrubbed-value">06</strong><small><b>4.1%</b> cleaned in flight</small></article>
+        </section>
+
+        <section class="lower-grid">
+          <article class="chart-card card-surface" id="activity">
+            <div class="card-heading chart-heading"><div><p class="section-label">FLOW OVERVIEW</p><h2>Messages in motion</h2></div><div class="range-switcher"><button class="range active" data-range="24h">24h</button><button class="range" data-range="7d">7d</button><button class="range" data-range="30d">30d</button></div></div>
+            <div class="chart-legend"><span><i class="legend-line cyan"></i>Fetched</span><span><i class="legend-line peach"></i>Copied</span><span class="chart-total"><strong id="chart-total">892</strong> total in window</span></div>
+            <div class="chart-wrap"><svg id="flow-chart" viewBox="0 0 800 255" preserveAspectRatio="none" role="img" aria-label="Messages fetched and copied over time"><defs><linearGradient id="cyanFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8ee8e0" stop-opacity=".24"/><stop offset="1" stop-color="#8ee8e0" stop-opacity="0"/></linearGradient><linearGradient id="peachFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f29a72" stop-opacity=".17"/><stop offset="1" stop-color="#f29a72" stop-opacity="0"/></linearGradient></defs><g class="chart-grid"><line x1="0" y1="20" x2="800" y2="20"/><line x1="0" y1="72" x2="800" y2="72"/><line x1="0" y1="124" x2="800" y2="124"/><line x1="0" y1="176" x2="800" y2="176"/><line x1="0" y1="228" x2="800" y2="228"/></g><path id="cyan-area" class="area cyan-area" d=""/><path id="peach-area" class="area peach-area" d=""/><path id="cyan-path" class="line-path cyan-path" d=""/><path id="peach-path" class="line-path peach-path" d=""/><line id="chart-crosshair" class="crosshair" x1="540" y1="12" x2="540" y2="232"/><circle id="chart-point" class="chart-point" cx="540" cy="72" r="5"/></svg><div class="chart-labels"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>Now</span></div></div>
+          </article>
+
+          <article class="activity-card card-surface" id="sources">
+            <div class="card-heading"><div><p class="section-label">SOURCE HEALTH</p><h2>Channels on watch</h2></div><button class="small-action">Manage <span>↗</span></button></div>
+            <div class="channel-list">
+              <div class="channel-row"><span class="channel-avatar coral">N</span><div class="channel-info"><strong>News desk / daily</strong><small>2m ago · 52 fetched</small></div><span class="channel-count">52</span><span class="tiny-health"><i></i></span></div>
+              <div class="channel-row"><span class="channel-avatar teal">C</span><div class="channel-info"><strong>Culture signals</strong><small>2m ago · 41 fetched</small></div><span class="channel-count">41</span><span class="tiny-health"><i></i></span></div>
+              <div class="channel-row"><span class="channel-avatar violet">F</span><div class="channel-info"><strong>Field notes / north</strong><small>2m ago · 55 fetched</small></div><span class="channel-count">55</span><span class="tiny-health"><i></i></span></div>
+            </div>
+            <div class="activity-footer"><span class="pulse-dot"></span><span>All channels responded</span><strong>3 / 3</strong></div>
+          </article>
+        </section>
+
+        <section class="bottom-grid">
+          <article class="policy-card card-surface" id="policies">
+            <div class="card-heading"><div><p class="section-label">FILTER INTELLIGENCE</p><h2>What stays behind</h2></div><span class="policy-count">04 active</span></div>
+            <div class="policy-list">
+              <div class="policy-row"><span class="policy-badge coral">AD</span><div><strong>Promotional markers</strong><small>#ad and insideads patterns</small></div><span class="policy-value">12 held</span><span class="toggle on"><i></i></span></div>
+              <div class="policy-row"><span class="policy-badge teal">↗</span><div><strong>Link sanitation</strong><small>Telegram + YouTube URLs</small></div><span class="policy-value">06 cleaned</span><span class="toggle on"><i></i></span></div>
+              <div class="policy-row"><span class="policy-badge violet">GIF</span><div><strong>Animated media</strong><small>GIF messages and previews</small></div><span class="policy-value">08 held</span><span class="toggle on"><i></i></span></div>
+              <div class="policy-row"><span class="policy-badge yellow">ID</span><div><strong>Duplicate memory</strong><small>Recent IDs and source cursor</small></div><span class="policy-value">04 held</span><span class="toggle on"><i></i></span></div>
+            </div>
+          </article>
+          <article class="timeline-card card-surface">
+            <div class="card-heading"><div><p class="section-label">RECENT PULSE</p><h2>Run history</h2></div><button class="small-action">See all <span>↗</span></button></div>
+            <div class="timeline">
+              <div class="timeline-item"><span class="timeline-dot success"></span><div><strong>Sync completed</strong><small>118 messages copied · 10:42 IST</small></div><span class="timeline-tag success-tag">Success</span></div>
+              <div class="timeline-item"><span class="timeline-dot success"></span><div><strong>Sync completed</strong><small>106 messages copied · 10:32 IST</small></div><span class="timeline-tag success-tag">Success</span></div>
+              <div class="timeline-item"><span class="timeline-dot warm"></span><div><strong>Sync completed with holds</strong><small>94 messages copied · 10:22 IST</small></div><span class="timeline-tag warm-tag">24 held</span></div>
+            </div>
+          </article>
+        </section>
+        <footer class="main-footer"><span>Relayroom keeps your publishing loop clear.</span><span>Built for the Telegram Copier workspace <i>✦</i></span></footer>
+      </main>
+    </div>
+    <div class="toast" id="toast" role="status"><span class="toast-icon">✓</span><span id="toast-text">Sync complete.</span></div>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

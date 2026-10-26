@@ -1,0 +1,310 @@
+{
+  "nodes": [
+    {
+      "id": "config_settings",
+      "label": "Settings",
+      "file_type": "code",
+      "source_file": "config.py",
+      "source_location": {
+        "start_line": 18,
+        "end_line": 26
+      }
+    },
+    {
+      "id": "config_from_env",
+      "label": "Settings.from_env",
+      "file_type": "code",
+      "source_file": "config.py",
+      "source_location": {
+        "start_line": 28,
+        "end_line": 74
+      }
+    },
+    {
+      "id": "generate_session_string_generate",
+      "label": "_generate",
+      "file_type": "code",
+      "source_file": "generate_session_string.py",
+      "source_location": {
+        "start_line": 16,
+        "end_line": 30
+      }
+    },
+    {
+      "id": "main_run",
+      "label": "run",
+      "file_type": "code",
+      "source_file": "main.py",
+      "source_location": {
+        "start_line": 109,
+        "end_line": 171
+      }
+    },
+    {
+      "id": "webhook_main",
+      "label": "main",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": {
+        "start_line": 1056,
+        "end_line": 1109
+      }
+    },
+    {
+      "id": "webhook_copysourcemessages",
+      "label": "_copy_source_messages",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": {
+        "start_line": 645,
+        "end_line": 866
+      },
+      "rationale": "Implements strict lookback fetch with checkpoint gating and duplicate removal via recent ID window. Includes cursor self-heal if state is ahead of live fetch."
+    },
+    {
+      "id": "webhook_loadstate",
+      "label": "_load_state",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": {
+        "start_line": 429,
+        "end_line": 464
+      }
+    },
+    {
+      "id": "webhook_savestate",
+      "label": "_save_state",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": {
+        "start_line": 467,
+        "end_line": 568
+      },
+      "rationale": "Handles oversized state payloads by compacting them before save to prevent MessageTooLongError in Telegram Saved Messages fallback."
+    },
+    {
+      "id": "webhook_forwardwithfallback",
+      "label": "_forward_with_fallback",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": {
+        "start_line": 907,
+        "end_line": 986
+      }
+    },
+    {
+      "id": "webhook_repostmessageswithoutforward",
+      "label": "_repost_messages_without_forward",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": {
+        "start_line": 989,
+        "end_line": 1053
+      },
+      "rationale": "Provides a fallback path for protected/forward-restricted chats by directly sending content without forward attribution."
+    },
+    {
+      "id": "webhook_logcopierexecution",
+      "label": "log_copier_execution",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": {
+        "start_line": 286,
+        "end_line": 322
+      }
+    },
+    {
+      "id": "webhook_appwritesettings",
+      "label": "AppwriteSettings",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": {
+        "start_line": 25,
+        "end_line": 32
+      }
+    },
+    {
+      "id": "agents_md",
+      "label": "Handover Notes",
+      "file_type": "document",
+      "source_file": "AGENTS.md"
+    },
+    {
+      "id": "ai_readme_md",
+      "label": "AI Integration Guide",
+      "file_type": "document",
+      "source_file": "AI.Readme.md",
+      "rationale": "Proposes a shadow mode for AI evaluation where decisions are logged but do not affect output until validated."
+    },
+    {
+      "id": "appwrite_deploy_md",
+      "label": "Appwrite Deployment",
+      "file_type": "document",
+      "source_file": "APPWRITE_DEPLOY.md"
+    },
+    {
+      "id": "readme_md",
+      "label": "Project README",
+      "file_type": "document",
+      "source_file": "README.md"
+    },
+    {
+      "id": "webhook_sanitizemessagetext",
+      "label": "_sanitize_message_text",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": {
+        "start_line": 371,
+        "end_line": 403
+      },
+      "rationale": "Removes Telegram and YouTube links and specific bad words to clean content before forwarding."
+    },
+    {
+      "id": "webhook_shouldskipmessagetext",
+      "label": "_should_skip_message_text",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": {
+        "start_line": 406,
+        "end_line": 413
+      },
+      "rationale": "Blocks messages containing ad markers or generic ad words if enabled."
+    }
+  ],
+  "edges": [
+    {
+      "source": "main_run",
+      "target": "config_from_env",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "main.py"
+    },
+    {
+      "source": "webhook_main",
+      "target": "webhook_copysourcemessages",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "appwrite/functions/webhook/src/main.py"
+    },
+    {
+      "source": "webhook_copysourcemessages",
+      "target": "webhook_loadstate",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "appwrite/functions/webhook/src/main.py"
+    },
+    {
+      "source": "webhook_copysourcemessages",
+      "target": "webhook_savestate",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "appwrite/functions/webhook/src/main.py"
+    },
+    {
+      "source": "webhook_copysourcemessages",
+      "target": "webhook_forwardwithfallback",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "appwrite/functions/webhook/src/main.py"
+    },
+    {
+      "source": "webhook_forwardwithfallback",
+      "target": "webhook_repostmessageswithoutforward",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "appwrite/functions/webhook/src/main.py"
+    },
+    {
+      "source": "webhook_copysourcemessages",
+      "target": "webhook_sanitizemessagetext",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "appwrite/functions/webhook/src/main.py"
+    },
+    {
+      "source": "webhook_copysourcemessages",
+      "target": "webhook_shouldskipmessagetext",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "appwrite/functions/webhook/src/main.py"
+    },
+    {
+      "source": "readme_md",
+      "target": "agents_md",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "README.md"
+    },
+    {
+      "source": "ai_readme_md",
+      "target": "webhook_main",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "AI.Readme.md"
+    },
+    {
+      "source": "agents_md",
+      "target": "webhook_copysourcemessages",
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "AGENTS.md"
+    },
+    {
+      "source": "appwrite_deploy_md",
+      "target": "webhook_main",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "APPWRITE_DEPLOY.md"
+    },
+    {
+      "source": "main_run",
+      "target": "webhook_main",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "main.py"
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "telegram_checkpoint_system",
+      "label": "Telegram Checkpoint System",
+      "nodes": [
+        "webhook_loadstate",
+        "webhook_savestate",
+        "agents_md"
+      ],
+      "relation": "form",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "appwrite/functions/webhook/src/main.py"
+    },
+    {
+      "id": "message_sanitization_pipeline",
+      "label": "Message Sanitization Pipeline",
+      "nodes": [
+        "webhook_sanitizemessagetext",
+        "webhook_shouldskipmessagetext",
+        "webhook_copysourcemessages"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "appwrite/functions/webhook/src/main.py"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}
