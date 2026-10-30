@@ -8,3 +8,4 @@ telegram_copier.json
 venv/
 __pycache__/
 telegram_copier.session
+opencode.json

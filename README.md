@@ -2,6 +2,12 @@
 
 Production setup is Appwrite Function-based user-session sync.
 
+## Frontend dashboard
+
+The `frontend/` Relayroom dashboard connects using Appwrite Web SDK project-user sessions, reads scheduled-run data from the function's existing database state/snapshots, and can start and track manual executions. Run `npm ci` and `npm run dev` in `frontend/`.
+
+See [frontend/README.md](frontend/README.md) for connection fields, required Web platform/auth/database/function permissions, production build instructions, and live verification steps.
+
 ## What It Does
 
 - Copies messages from one or many source channels to a destination channel.
@@ -30,6 +36,10 @@ Production setup is Appwrite Function-based user-session sync.
   - Skips GIF messages/media.
 - Protected channels:
   - Falls back to repost when forwarding is restricted.
+- Copy mode:
+  - Default `COPY_MODE=copy`: posts content as your own channel post, no "Forwarded from" header.
+  - Albums stay grouped; polls/geo/contacts are reposted as their text.
+  - Set `COPY_MODE=0` or `COPY_MODE=forward` to use Telegram forwards again.
 - State safety:
   - Compacts oversized state payloads to avoid Telegram `MessageTooLongError`.
 - Session safety:
@@ -55,6 +65,11 @@ Production setup is Appwrite Function-based user-session sync.
 - State/run:
   - `state_saved`, `state_message_id`, `updated_sources`
   - `run_snapshot_count`, `run_snapshot_message_ids`
+- Per-source coverage (execution logs):
+  - `Source coverage: checked=<visited>/<configured>, with_messages_in_window=, copied_sources=, entity_errors=, source_errors=`
+  - `Copied sources: <channel ids>`
+  - one line per configured source: `source=<id> f=<fetched> c=<copied> g=<cursor gate skip> r=<recent dup skip> a=<ad block> i=<gif block> w=<min-max(count)>`; zero-valued fields are omitted
+  - the same data is returned in the execution response under `source_run_stats`
 
 ## Project Structure
 
@@ -88,6 +103,7 @@ telegram_copier/
   - `BLOCK_GENERIC_AD_WORD` (`1`/`true` to block standalone `ad`)
   - `ENABLE_CURSOR_GATE` (default `1`; set `0` only for debugging/replay scenarios)
   - `ENABLE_SNAPSHOT_RECOVERY` (default `0`; set `1` to merge run snapshots into processing)
+  - `COPY_MODE` (default `copy`; reposts as your own post with no "Forwarded from" header. Set `0` or `forward` to restore Telegram forward attribution)
 
 ## CI/CD (GitHub Actions)
 
