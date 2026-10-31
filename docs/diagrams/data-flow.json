@@ -1,0 +1,244 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "Message Data Flow",
+    "output": "docs/diagrams/data-flow.html",
+    "viewBox": [
+      1000,
+      720
+    ],
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "hot-path",
+        "label": "Hot path",
+        "focus": [
+          "sources",
+          "fetch",
+          "gate",
+          "send",
+          "dest"
+        ],
+        "note": "Follow one message from a source channel to the destination channel."
+      },
+      {
+        "id": "drop-path",
+        "label": "Drop path",
+        "focus": [
+          "state_in",
+          "gate"
+        ],
+        "note": "Already-seen, ad and GIF messages never reach the destination."
+      },
+      {
+        "id": "record-path",
+        "label": "Record path",
+        "focus": [
+          "send",
+          "state_out",
+          "log"
+        ],
+        "note": "Each run persists a checkpoint and a bounded run log."
+      }
+    ]
+  },
+  "stages": [
+    {
+      "label": "Collect"
+    },
+    {
+      "label": "Gate"
+    },
+    {
+      "label": "Deliver"
+    },
+    {
+      "label": "Record"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "sources",
+      "type": "external",
+      "label": "Source Channels",
+      "sublabel": "channel IDs",
+      "stage": 0,
+      "row": 1,
+      "tag": "Telegram"
+    },
+    {
+      "id": "state_in",
+      "type": "database",
+      "label": "Checkpoint",
+      "sublabel": "last_id + recent",
+      "stage": 0,
+      "row": 3,
+      "tag": "state_key=global"
+    },
+    {
+      "id": "gate",
+      "type": "security",
+      "label": "Gate + Filter",
+      "sublabel": "dedupe, ad, GIF",
+      "stage": 1,
+      "row": 0,
+      "tag": "idempotent"
+    },
+    {
+      "id": "fetch",
+      "type": "backend",
+      "label": "Lookback Fetch",
+      "sublabel": "LOOKBACK_MINUTES",
+      "stage": 1,
+      "row": 2,
+      "tag": "paged backwards"
+    },
+    {
+      "id": "send",
+      "type": "backend",
+      "label": "Copy Post",
+      "sublabel": "clean text, grouped albums",
+      "stage": 2,
+      "row": 1,
+      "tag": "COPY_MODE=copy"
+    },
+    {
+      "id": "dest",
+      "type": "external",
+      "label": "Destination",
+      "sublabel": "destination channel",
+      "stage": 3,
+      "row": 0,
+      "tag": "published"
+    },
+    {
+      "id": "state_out",
+      "type": "database",
+      "label": "State Save",
+      "sublabel": "compacted payload",
+      "stage": 3,
+      "row": 2,
+      "tag": "row upsert"
+    },
+    {
+      "id": "log",
+      "type": "database",
+      "label": "Run Log",
+      "sublabel": "counters, errors",
+      "stage": 3,
+      "row": 3,
+      "tag": "telegram_copier_logs"
+    }
+  ],
+  "flows": [
+    {
+      "id": "source-window",
+      "from": "sources",
+      "to": "fetch",
+      "label": "messages in window",
+      "classification": "read-only",
+      "variant": "emphasis"
+    },
+    {
+      "id": "cursor-in",
+      "from": "state_in",
+      "to": "gate",
+      "label": "last_id + recent",
+      "classification": "prior run",
+      "variant": "default",
+      "fromSide": "left",
+      "toSide": "left",
+      "via": [
+        [
+          30,
+          499
+        ],
+        [
+          30,
+          157
+        ]
+      ],
+      "labelAt": [
+        160,
+        138
+      ]
+    },
+    {
+      "id": "candidates",
+      "from": "fetch",
+      "to": "gate",
+      "label": "candidate IDs",
+      "classification": "fetched",
+      "variant": "emphasis",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "route": "straight",
+      "labelAt": [
+        315,
+        320
+      ]
+    },
+    {
+      "id": "clean-payload",
+      "from": "gate",
+      "to": "send",
+      "label": "new IDs only",
+      "classification": "deduped, cleaned",
+      "variant": "emphasis"
+    },
+    {
+      "id": "publish",
+      "from": "send",
+      "to": "dest",
+      "label": "publish",
+      "classification": "copied",
+      "variant": "emphasis"
+    },
+    {
+      "id": "checkpoint-write",
+      "from": "send",
+      "to": "state_out",
+      "label": "processed IDs",
+      "classification": "checkpoint",
+      "variant": "default"
+    },
+    {
+      "id": "run-counters",
+      "from": "state_out",
+      "to": "log",
+      "label": "run counters",
+      "classification": "observability",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "What moves forward",
+      "items": [
+        "Only IDs newer than the source cursor survive the gate",
+        "The recent window still blocks replays after a cursor self-heal",
+        "Albums travel as one grouped send, not separate posts"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "What never moves",
+      "items": [
+        "Ad markers and GIF media are recorded as skipped, never sent",
+        "Telegram and YouTube links plus mc/bc words are stripped from text",
+        "Poll, geo and contact media degrade to their caption text"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "What survives the run",
+      "items": [
+        "State writes are compacted before save to avoid MessageTooLongError",
+        "A FloodWaitError halts the run and keeps the last good checkpoint",
+        "Run logs carry per-source skip counters for the dashboard"
+      ]
+    }
+  ]
+}

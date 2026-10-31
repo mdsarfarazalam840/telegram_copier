@@ -1,0 +1,225 @@
+{
+  "schema_version": 1,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "Sync Run Lifecycle",
+    "output": "docs/diagrams/run-lifecycle.html",
+    "viewBox": [
+      1020,
+      660
+    ],
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "happy-path",
+        "label": "Happy path",
+        "focus": [
+          "trigger",
+          "load",
+          "fetch",
+          "filter",
+          "deliver",
+          "completed"
+        ],
+        "note": "A scheduled or manual run walks the main rail and ends in completed."
+      },
+      {
+        "id": "partial-path",
+        "label": "Partial success",
+        "focus": [
+          "fetch",
+          "deliver",
+          "errors"
+        ],
+        "note": "One failed source channel marks the run completed_with_errors without stopping the rest."
+      },
+      {
+        "id": "state-path",
+        "label": "Checkpoint safety",
+        "focus": [
+          "trigger",
+          "load",
+          "fetch",
+          "completed"
+        ],
+        "note": "The checkpoint loads first and is only advanced by posts the run actually processed."
+      }
+    ]
+  },
+  "lanes": [
+    {
+      "id": "main",
+      "label": "Run phases"
+    },
+    {
+      "id": "gate",
+      "label": "Per-message gate"
+    },
+    {
+      "id": "terminal",
+      "label": "Run outcomes"
+    }
+  ],
+  "states": [
+    {
+      "id": "trigger",
+      "type": "start",
+      "label": "Triggered",
+      "sublabel": "cron or manual",
+      "lane": "main",
+      "col": 0,
+      "step": "01",
+      "tag": "60 min"
+    },
+    {
+      "id": "load",
+      "type": "active",
+      "label": "Load State",
+      "sublabel": "row state_key=global",
+      "lane": "main",
+      "col": 1,
+      "step": "02",
+      "tag": "checkpoint"
+    },
+    {
+      "id": "fetch",
+      "type": "active",
+      "label": "Fetch Window",
+      "sublabel": "per source",
+      "lane": "main",
+      "col": 2,
+      "step": "03",
+      "tag": "lookback"
+    },
+    {
+      "id": "filter",
+      "type": "decision",
+      "label": "Gate + Filter",
+      "sublabel": "cursor, recent, rules",
+      "lane": "main",
+      "col": 3,
+      "step": "04",
+      "tag": "per message"
+    },
+    {
+      "id": "deliver",
+      "type": "active",
+      "label": "Copy Posts",
+      "sublabel": "albums grouped",
+      "lane": "main",
+      "col": 4,
+      "step": "05",
+      "tag": "copy mode"
+    },
+    {
+      "id": "skipped",
+      "type": "decision",
+      "label": "Skipped",
+      "sublabel": "duplicate, ad, GIF",
+      "lane": "gate",
+      "col": 1,
+      "width": 118,
+      "tag": "no copy"
+    },
+    {
+      "id": "completed",
+      "type": "success",
+      "label": "Completed",
+      "sublabel": "state saved",
+      "lane": "terminal",
+      "col": 2,
+      "tag": "ok"
+    },
+    {
+      "id": "errors",
+      "type": "neutral",
+      "label": "Errors",
+      "sublabel": "completed_with_errors",
+      "lane": "terminal",
+      "col": 0,
+      "tag": "partial"
+    }
+  ],
+  "transitions": [
+    {
+      "id": "start-load",
+      "from": "trigger",
+      "to": "load",
+      "variant": "default"
+    },
+    {
+      "id": "load-fetch",
+      "from": "load",
+      "to": "fetch",
+      "variant": "default"
+    },
+    {
+      "id": "fetch-filter",
+      "from": "fetch",
+      "to": "filter",
+      "variant": "default"
+    },
+    {
+      "id": "filter-deliver",
+      "from": "filter",
+      "to": "deliver",
+      "variant": "emphasis"
+    },
+    {
+      "id": "filter-skipped",
+      "from": "filter",
+      "to": "skipped",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "straight"
+    },
+    {
+      "id": "deliver-completed",
+      "from": "deliver",
+      "to": "completed",
+      "variant": "default",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "straight"
+    },
+    {
+      "id": "fetch-errors",
+      "from": "fetch",
+      "to": "errors",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "One run, one checkpoint",
+      "items": [
+        "State is saved before work starts and again at the end",
+        "Every source advances its own last_id and recent window",
+        "Completed means the function finished, not that every post landed"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Safe exits",
+      "items": [
+        "Flood wait returns flood_wait_seconds and halted=1",
+        "A halted run keeps the last good checkpoint and resumes next schedule",
+        "An invalid session fails at connect and asks for a new SESSION_STRING"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Partial success",
+      "items": [
+        "A broken source records source_errors and continues",
+        "Status becomes completed_with_errors for the dashboard",
+        "Unreachable channels stay visible instead of failing silently"
+      ]
+    }
+  ]
+}
