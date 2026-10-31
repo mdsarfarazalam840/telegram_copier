@@ -68,6 +68,7 @@
 - `SESSION_STRING`
 - `DESTINATION_CHANNEL_ID`
 - `SOURCE_CHANNEL_ID` or `SOURCE_CHANNEL_IDS`
+- `SOURCE_CHANNEL_USERNAMES` (optional ordered fallback for public sources not present in the session entity cache)
 - `LIMIT_PER_SOURCE` (1..200)
 - `LOOKBACK_MINUTES` (1..1440)
 - `BLOCK_GENERIC_AD_WORD` (optional; `1` enables standalone `ad` blocking)
@@ -102,12 +103,24 @@
 - Added cursor self-heal when `last_id` is ahead of fetched range.
 - Added explicit `AuthKeyDuplicatedError` handling with actionable runtime error.
 - Added detailed skip-reason counters in run result/logs.
+- Added per-source execution logs: `Source coverage: checked=<n>/<total>` plus one compact line per configured source (`source=<id> f= c= g= r= a= i= w=`). Per-source stats also returned as `source_run_stats`. Kept compact because Appwrite trims execution logs at 8000 chars.
 
 ## Deployment Status
 - As of 2026-02-24: code updated locally in workspace, tests passing.
 - Deployment from this workspace is pending (run `appwrite push functions` to publish).
 
+## Appwrite 2.x Platform Notes
+- Query dialect: Appwrite 2.6.2 rejects legacy strings (`equal("state_key",["global"])`, `limit(1)`) with `Invalid query: Syntax error`. Use JSON query objects: `{"method":"equal","attribute":"state_key","values":["global"]}`, `{"method":"limit","values":[1]}`, `{"method":"orderDesc","attribute":"$createdAt"}`. The function sends JSON first and flips to legacy only if the server rejects it.
+- State 409: a failed list call left `_load_state` without a row id, so `_save_state` created `state_key=global` and hit `row_unique_constraint_violation`. The loader now returns the real `$id` even when the payload is compacted, and the saver reuses the existing `state_key=global` row.
+- Schedule floor: the current plan rejects intervals below 60 minutes (`Your current plan allows intervals of 60 minutes or longer`). `appwrite.json` uses `"interval": 60`.
+- Coverage: hourly schedule plus `LOOKBACK_MINUTES=120` keeps the last hour fully covered and tolerates one delayed run.
+- Cursor gate: `ENABLE_CURSOR_GATE=1` is required alongside DB state, otherwise each hourly run re-copies the whole lookback window.
+- Copy mode: `COPY_MODE` defaults to `copy` (own post, no forward attribution). `COPY_MODE=0` or `forward` restores forwarding.
+
 ## Validation
+- Frontend: `cd frontend`, then `npm ci`, `npm test`, `npm run build`, and `npm run test:browser` (requires `npx playwright install chromium`). Browser tests mock Appwrite HTTP; they do not establish production connectivity.
+- Relayroom uses the Appwrite Web SDK to read existing DB state/snapshots and submit asynchronous manual syncs. Connection IDs are entered in its setup form; API keys and Telegram secrets must never be added to frontend files. See `frontend/README.md` for setup and data-availability limitations.
+- Relayroom paginates source checkpoints/history in the UI and uses the latest final state metadata as a counter fallback when Appwrite state/log timestamps are not identical. The webhook state compactor retains a bounded `meta.source_errors` summary for future diagnostics; redeploy the webhook after this change.
 - Local tests:
   - `python -m pytest -q`
 - Latest baseline in this workspace: all tests passing.

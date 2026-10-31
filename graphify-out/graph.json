@@ -1,0 +1,5642 @@
+{
+  "directed": false,
+  "multigraph": false,
+  "graph": {
+    "hyperedges": [
+      {
+        "id": "telegram_checkpoint_system",
+        "label": "Telegram Checkpoint System",
+        "nodes": [
+          "webhook_loadstate",
+          "webhook_savestate",
+          "agents_md"
+        ],
+        "relation": "form",
+        "confidence": "INFERRED",
+        "confidence_score": 0.95,
+        "source_file": "appwrite/functions/webhook/src/main.py"
+      },
+      {
+        "id": "message_sanitization_pipeline",
+        "label": "Message Sanitization Pipeline",
+        "nodes": [
+          "webhook_sanitizemessagetext",
+          "webhook_shouldskipmessagetext",
+          "webhook_copysourcemessages"
+        ],
+        "relation": "participate_in",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0,
+        "source_file": "appwrite/functions/webhook/src/main.py"
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "label": "config.py",
+      "file_type": "code",
+      "source_file": "config.py",
+      "source_location": "L1",
+      "id": "config_py",
+      "community": 5,
+      "norm_label": "config.py"
+    },
+    {
+      "label": "_required_env()",
+      "file_type": "code",
+      "source_file": "config.py",
+      "source_location": "L10",
+      "id": "telegram_copier_config_required_env",
+      "community": 5,
+      "norm_label": "_required_env()"
+    },
+    {
+      "label": "Settings",
+      "file_type": "code",
+      "source_file": "config.py",
+      "source_location": "L18",
+      "id": "telegram_copier_config_settings",
+      "community": 5,
+      "norm_label": "settings"
+    },
+    {
+      "label": "from_env()",
+      "file_type": "code",
+      "source_file": "config.py",
+      "source_location": "L28",
+      "id": "telegram_copier_config_from_env",
+      "community": 5,
+      "norm_label": "from_env()"
+    },
+    {
+      "label": "generate_session_string.py",
+      "file_type": "code",
+      "source_file": "generate_session_string.py",
+      "source_location": "L1",
+      "id": "generate_session_string_py",
+      "community": 14,
+      "norm_label": "generate_session_string.py"
+    },
+    {
+      "label": "_required_env()",
+      "file_type": "code",
+      "source_file": "generate_session_string.py",
+      "source_location": "L9",
+      "id": "telegram_copier_generate_session_string_required_env",
+      "community": 14,
+      "norm_label": "_required_env()"
+    },
+    {
+      "label": "_generate()",
+      "file_type": "code",
+      "source_file": "generate_session_string.py",
+      "source_location": "L16",
+      "id": "telegram_copier_generate_session_string_generate",
+      "community": 14,
+      "norm_label": "_generate()"
+    },
+    {
+      "label": "main()",
+      "file_type": "code",
+      "source_file": "generate_session_string.py",
+      "source_location": "L31",
+      "id": "telegram_copier_generate_session_string_main",
+      "community": 14,
+      "norm_label": "main()"
+    },
+    {
+      "label": "main.py",
+      "file_type": "code",
+      "source_file": "main.py",
+      "source_location": "L1",
+      "id": "main_py",
+      "community": 5,
+      "norm_label": "main.py"
+    },
+    {
+      "label": "setup_logging()",
+      "file_type": "code",
+      "source_file": "main.py",
+      "source_location": "L20",
+      "id": "telegram_copier_main_setup_logging",
+      "community": 5,
+      "norm_label": "setup_logging()"
+    },
+    {
+      "label": "copy_single_message()",
+      "file_type": "code",
+      "source_file": "main.py",
+      "source_location": "L27",
+      "id": "telegram_copier_main_copy_single_message",
+      "community": 5,
+      "norm_label": "copy_single_message()"
+    },
+    {
+      "label": "copy_media_group()",
+      "file_type": "code",
+      "source_file": "main.py",
+      "source_location": "L39",
+      "id": "telegram_copier_main_copy_media_group",
+      "community": 5,
+      "norm_label": "copy_media_group()"
+    },
+    {
+      "label": "process_album_event()",
+      "file_type": "code",
+      "source_file": "main.py",
+      "source_location": "L56",
+      "id": "telegram_copier_main_process_album_event",
+      "community": 5,
+      "norm_label": "process_album_event()"
+    },
+    {
+      "label": "process_new_message_event()",
+      "file_type": "code",
+      "source_file": "main.py",
+      "source_location": "L76",
+      "id": "telegram_copier_main_process_new_message_event",
+      "community": 5,
+      "norm_label": "process_new_message_event()"
+    },
+    {
+      "label": "start_client()",
+      "file_type": "code",
+      "source_file": "main.py",
+      "source_location": "L102",
+      "id": "telegram_copier_main_start_client",
+      "community": 5,
+      "norm_label": "start_client()"
+    },
+    {
+      "label": "run()",
+      "file_type": "code",
+      "source_file": "main.py",
+      "source_location": "L132",
+      "id": "telegram_copier_main_run",
+      "community": 5,
+      "norm_label": "run()"
+    },
+    {
+      "label": "print_dialog_ids.py",
+      "file_type": "code",
+      "source_file": "print_dialog_ids.py",
+      "source_location": "L1",
+      "id": "print_dialog_ids_py",
+      "community": 15,
+      "norm_label": "print_dialog_ids.py"
+    },
+    {
+      "label": "main()",
+      "file_type": "code",
+      "source_file": "print_dialog_ids.py",
+      "source_location": "L9",
+      "id": "telegram_copier_print_dialog_ids_main",
+      "community": 15,
+      "norm_label": "main()"
+    },
+    {
+      "label": "__init__.py",
+      "file_type": "code",
+      "source_file": "__init__.py",
+      "source_location": "L1",
+      "id": "init_py",
+      "community": 16,
+      "norm_label": "__init__.py"
+    },
+    {
+      "label": "Telegram copier package.",
+      "file_type": "rationale",
+      "source_file": "__init__.py",
+      "source_location": "L1",
+      "id": "telegram_copier_init_rationale_1",
+      "community": 16,
+      "norm_label": "telegram copier package."
+    },
+    {
+      "label": "main.py",
+      "file_type": "code",
+      "source_file": "appwrite/functions/album_flush/src/main.py",
+      "source_location": "L1",
+      "id": "appwrite_functions_album_flush_src_main_py",
+      "community": 10,
+      "norm_label": "main.py"
+    },
+    {
+      "label": "_respond_json()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L743",
+      "id": "src_main_respond_json",
+      "community": 10,
+      "norm_label": "_respond_json()"
+    },
+    {
+      "label": "main()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1838",
+      "id": "src_main_main",
+      "community": 10,
+      "norm_label": "main()"
+    },
+    {
+      "label": "main.py",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1",
+      "id": "appwrite_functions_webhook_src_main_py",
+      "community": 1,
+      "norm_label": "main.py"
+    },
+    {
+      "label": "AppwriteSettings",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L27",
+      "id": "src_main_appwritesettings",
+      "community": 10,
+      "norm_label": "appwritesettings"
+    },
+    {
+      "label": "FloodHalt",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L38",
+      "id": "src_main_floodhalt",
+      "community": 8,
+      "norm_label": "floodhalt"
+    },
+    {
+      "label": "Exception",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": "",
+      "id": "exception",
+      "community": 8,
+      "norm_label": "exception"
+    },
+    {
+      "label": "_appwrite_endpoint()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L56",
+      "id": "src_main_appwrite_endpoint",
+      "community": 7,
+      "norm_label": "_appwrite_endpoint()"
+    },
+    {
+      "label": "_appwrite_project_id()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L64",
+      "id": "src_main_appwrite_project_id",
+      "community": 13,
+      "norm_label": "_appwrite_project_id()"
+    },
+    {
+      "label": "_appwrite_api_key()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L68",
+      "id": "src_main_appwrite_api_key",
+      "community": 13,
+      "norm_label": "_appwrite_api_key()"
+    },
+    {
+      "label": "_appwrite_jwt()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L76",
+      "id": "src_main_appwrite_jwt",
+      "community": 13,
+      "norm_label": "_appwrite_jwt()"
+    },
+    {
+      "label": "_has_appwrite_auth()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L80",
+      "id": "src_main_has_appwrite_auth",
+      "community": 7,
+      "norm_label": "_has_appwrite_auth()"
+    },
+    {
+      "label": "_appwrite_auth_mode()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L84",
+      "id": "src_main_appwrite_auth_mode",
+      "community": 13,
+      "norm_label": "_appwrite_auth_mode()"
+    },
+    {
+      "label": "_log_database_id()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L92",
+      "id": "src_main_log_database_id",
+      "community": 7,
+      "norm_label": "_log_database_id()"
+    },
+    {
+      "label": "_log_collection_id()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L96",
+      "id": "src_main_log_collection_id",
+      "community": 6,
+      "norm_label": "_log_collection_id()"
+    },
+    {
+      "label": "_state_database_id()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L100",
+      "id": "src_main_state_database_id",
+      "community": 7,
+      "norm_label": "_state_database_id()"
+    },
+    {
+      "label": "_state_collection_id()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L104",
+      "id": "src_main_state_collection_id",
+      "community": 2,
+      "norm_label": "_state_collection_id()"
+    },
+    {
+      "label": "_is_db_logging_enabled()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L108",
+      "id": "src_main_is_db_logging_enabled",
+      "community": 7,
+      "norm_label": "_is_db_logging_enabled()"
+    },
+    {
+      "label": "_is_db_state_enabled()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L112",
+      "id": "src_main_is_db_state_enabled",
+      "community": 7,
+      "norm_label": "_is_db_state_enabled()"
+    },
+    {
+      "label": "_db_logging_disable_reason()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L116",
+      "id": "src_main_db_logging_disable_reason",
+      "community": 7,
+      "norm_label": "_db_logging_disable_reason()"
+    },
+    {
+      "label": "_db_state_disable_reason()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L129",
+      "id": "src_main_db_state_disable_reason",
+      "community": 7,
+      "norm_label": "_db_state_disable_reason()"
+    },
+    {
+      "label": "_appwrite_env_diagnostics()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L142",
+      "id": "src_main_appwrite_env_diagnostics",
+      "community": 7,
+      "norm_label": "_appwrite_env_diagnostics()"
+    },
+    {
+      "label": "_appwrite_headers()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L155",
+      "id": "src_main_appwrite_headers",
+      "community": 13,
+      "norm_label": "_appwrite_headers()"
+    },
+    {
+      "label": "_appwrite_build_url()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L169",
+      "id": "src_main_appwrite_build_url",
+      "community": 2,
+      "norm_label": "_appwrite_build_url()"
+    },
+    {
+      "label": "_appwrite_request_json()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L182",
+      "id": "src_main_appwrite_request_json",
+      "community": 2,
+      "norm_label": "_appwrite_request_json()"
+    },
+    {
+      "label": "_appwrite_create_document()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L208",
+      "id": "src_main_appwrite_create_document",
+      "community": 2,
+      "norm_label": "_appwrite_create_document()"
+    },
+    {
+      "label": "_appwrite_list_documents()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L246",
+      "id": "src_main_appwrite_list_documents",
+      "community": 2,
+      "norm_label": "_appwrite_list_documents()"
+    },
+    {
+      "label": "_serialize_message_ids()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L270",
+      "id": "src_main_serialize_message_ids",
+      "community": 1,
+      "norm_label": "_serialize_message_ids()"
+    },
+    {
+      "label": "_parse_serialized_message_ids()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L274",
+      "id": "src_main_parse_serialized_message_ids",
+      "community": 6,
+      "norm_label": "_parse_serialized_message_ids()"
+    },
+    {
+      "label": "_parse_message_ids_json_value()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L287",
+      "id": "src_main_parse_message_ids_json_value",
+      "community": 6,
+      "norm_label": "_parse_message_ids_json_value()"
+    },
+    {
+      "label": "_strip_unknown_attribute_from_error()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L300",
+      "id": "src_main_strip_unknown_attribute_from_error",
+      "community": 6,
+      "norm_label": "_strip_unknown_attribute_from_error()"
+    },
+    {
+      "label": "_coerce_json_like_fields_to_text()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L312",
+      "id": "src_main_coerce_json_like_fields_to_text",
+      "community": 1,
+      "norm_label": "_coerce_json_like_fields_to_text()"
+    },
+    {
+      "label": "_adjust_json_field_by_error()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L328",
+      "id": "src_main_adjust_json_field_by_error",
+      "community": 6,
+      "norm_label": "_adjust_json_field_by_error()"
+    },
+    {
+      "label": "_build_log_part_payload()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L372",
+      "id": "src_main_build_log_part_payload",
+      "community": 1,
+      "norm_label": "_build_log_part_payload()"
+    },
+    {
+      "label": "log_copier_execution()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L393",
+      "id": "src_main_log_copier_execution",
+      "community": 6,
+      "norm_label": "log_copier_execution()"
+    },
+    {
+      "label": "_now_utc_iso()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L433",
+      "id": "src_main_now_utc_iso",
+      "community": 1,
+      "norm_label": "_now_utc_iso()"
+    },
+    {
+      "label": "_now_ist_iso()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L437",
+      "id": "src_main_now_ist_iso",
+      "community": 1,
+      "norm_label": "_now_ist_iso()"
+    },
+    {
+      "label": "_state_payload_text()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L441",
+      "id": "src_main_state_payload_text",
+      "community": 2,
+      "norm_label": "_state_payload_text()"
+    },
+    {
+      "label": "_copy_state()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L445",
+      "id": "src_main_copy_state",
+      "community": 2,
+      "norm_label": "_copy_state()"
+    },
+    {
+      "label": "_compact_state_for_save()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L452",
+      "id": "src_main_compact_state_for_save",
+      "community": 2,
+      "norm_label": "_compact_state_for_save()"
+    },
+    {
+      "label": "_build_state_payload()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L474",
+      "id": "src_main_build_state_payload",
+      "community": 2,
+      "norm_label": "_build_state_payload()"
+    },
+    {
+      "label": "_build_state_payload_with_limit()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L507",
+      "id": "src_main_build_state_payload_with_limit",
+      "community": 2,
+      "norm_label": "_build_state_payload_with_limit()"
+    },
+    {
+      "label": "_split_id_tokens()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L536",
+      "id": "src_main_split_id_tokens",
+      "community": 1,
+      "norm_label": "_split_id_tokens()"
+    },
+    {
+      "label": "_save_run_window_ids()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L556",
+      "id": "src_main_save_run_window_ids",
+      "community": 1,
+      "norm_label": "_save_run_window_ids()"
+    },
+    {
+      "label": "_parse_run_snapshot_message()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L596",
+      "id": "src_main_parse_run_snapshot_message",
+      "community": 6,
+      "norm_label": "_parse_run_snapshot_message()"
+    },
+    {
+      "label": "_load_recent_run_snapshot_ids()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L629",
+      "id": "src_main_load_recent_run_snapshot_ids",
+      "community": 6,
+      "norm_label": "_load_recent_run_snapshot_ids()"
+    },
+    {
+      "label": "_parse_source_ids()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L685",
+      "id": "src_main_parse_source_ids",
+      "community": 10,
+      "norm_label": "_parse_source_ids()"
+    },
+    {
+      "label": "_load_settings_from_env()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L696",
+      "id": "src_main_load_settings_from_env",
+      "community": 10,
+      "norm_label": "_load_settings_from_env()"
+    },
+    {
+      "label": "_safe_log()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L757",
+      "id": "src_main_safe_log",
+      "community": 10,
+      "norm_label": "_safe_log()"
+    },
+    {
+      "label": "_extract_state()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L768",
+      "id": "src_main_extract_state",
+      "community": 2,
+      "norm_label": "_extract_state()"
+    },
+    {
+      "label": "_get_source_state()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L786",
+      "id": "src_main_get_source_state",
+      "community": 1,
+      "norm_label": "_get_source_state()"
+    },
+    {
+      "label": "_set_source_state()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L797",
+      "id": "src_main_set_source_state",
+      "community": 1,
+      "norm_label": "_set_source_state()"
+    },
+    {
+      "label": "_set_run_meta()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L815",
+      "id": "src_main_set_run_meta",
+      "community": 1,
+      "norm_label": "_set_run_meta()"
+    },
+    {
+      "label": "_sanitize_message_text()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L821",
+      "id": "src_main_sanitize_message_text",
+      "community": 8,
+      "norm_label": "_sanitize_message_text()"
+    },
+    {
+      "label": "_should_skip_message_text()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L854",
+      "id": "src_main_should_skip_message_text",
+      "community": 1,
+      "norm_label": "_should_skip_message_text()"
+    },
+    {
+      "label": "_is_cursor_gate_enabled()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L864",
+      "id": "src_main_is_cursor_gate_enabled",
+      "community": 1,
+      "norm_label": "_is_cursor_gate_enabled()"
+    },
+    {
+      "label": "_is_snapshot_recovery_enabled()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L868",
+      "id": "src_main_is_snapshot_recovery_enabled",
+      "community": 1,
+      "norm_label": "_is_snapshot_recovery_enabled()"
+    },
+    {
+      "label": "_is_telegram_state_fallback_enabled()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L872",
+      "id": "src_main_is_telegram_state_fallback_enabled",
+      "community": 2,
+      "norm_label": "_is_telegram_state_fallback_enabled()"
+    },
+    {
+      "label": "_fetch_recent_messages()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L876",
+      "id": "src_main_fetch_recent_messages",
+      "community": 1,
+      "norm_label": "_fetch_recent_messages()"
+    },
+    {
+      "label": "_has_sendable_media()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L901",
+      "id": "src_main_has_sendable_media",
+      "community": 8,
+      "norm_label": "_has_sendable_media()"
+    },
+    {
+      "label": "_is_gif_message()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L911",
+      "id": "src_main_is_gif_message",
+      "community": 8,
+      "norm_label": "_is_gif_message()"
+    },
+    {
+      "label": "_load_state()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L942",
+      "id": "src_main_load_state",
+      "community": 2,
+      "norm_label": "_load_state()"
+    },
+    {
+      "label": "_save_state()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L995",
+      "id": "src_main_save_state",
+      "community": 2,
+      "norm_label": "_save_state()"
+    },
+    {
+      "label": "_group_message_ids()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1114",
+      "id": "src_main_group_message_ids",
+      "community": 1,
+      "norm_label": "_group_message_ids()"
+    },
+    {
+      "label": "_copy_source_messages()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1149",
+      "id": "src_main_copy_source_messages",
+      "community": 1,
+      "norm_label": "_copy_source_messages()"
+    },
+    {
+      "label": "_copy_single_with_optional_sanitize()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1582",
+      "id": "src_main_copy_single_with_optional_sanitize",
+      "community": 8,
+      "norm_label": "_copy_single_with_optional_sanitize()"
+    },
+    {
+      "label": "_forward_with_fallback()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1634",
+      "id": "src_main_forward_with_fallback",
+      "community": 8,
+      "norm_label": "_forward_with_fallback()"
+    },
+    {
+      "label": "_repost_messages_without_forward()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1726",
+      "id": "src_main_repost_messages_without_forward",
+      "community": 8,
+      "norm_label": "_repost_messages_without_forward()"
+    },
+    {
+      "label": "_run_once()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1798",
+      "id": "src_main_run_once",
+      "community": 1,
+      "norm_label": "_run_once()"
+    },
+    {
+      "label": "_run_once_sync()",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1826",
+      "id": "src_main_run_once_sync",
+      "community": 1,
+      "norm_label": "_run_once_sync()"
+    },
+    {
+      "label": "Persist log to Appwrite DB. Never raises and retries once.",
+      "file_type": "rationale",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L394",
+      "id": "src_main_rationale_394",
+      "community": 6,
+      "norm_label": "persist log to appwrite db. never raises and retries once."
+    },
+    {
+      "label": "test_appwrite_album_flush.py",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_album_flush.py",
+      "source_location": "L1",
+      "id": "tests_test_appwrite_album_flush_py",
+      "community": 12,
+      "norm_label": "test_appwrite_album_flush.py"
+    },
+    {
+      "label": "load_module()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_album_flush.py",
+      "source_location": "L13",
+      "id": "tests_test_appwrite_album_flush_load_module",
+      "community": 12,
+      "norm_label": "load_module()"
+    },
+    {
+      "label": "FakeRes",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_album_flush.py",
+      "source_location": "L21",
+      "id": "tests_test_appwrite_album_flush_fakeres",
+      "community": 12,
+      "norm_label": "fakeres"
+    },
+    {
+      "label": ".__init__()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_album_flush.py",
+      "source_location": "L22",
+      "id": "tests_test_appwrite_album_flush_fakeres_init",
+      "community": 12,
+      "norm_label": ".__init__()"
+    },
+    {
+      "label": ".json()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_album_flush.py",
+      "source_location": "L26",
+      "id": "tests_test_appwrite_album_flush_fakeres_json",
+      "community": 12,
+      "norm_label": ".json()"
+    },
+    {
+      "label": "test_album_flush_returns_ok()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_album_flush.py",
+      "source_location": "L32",
+      "id": "tests_test_appwrite_album_flush_test_album_flush_returns_ok",
+      "community": 12,
+      "norm_label": "test_album_flush_returns_ok()"
+    },
+    {
+      "label": "test_appwrite_webhook.py",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L1",
+      "id": "tests_test_appwrite_webhook_py",
+      "community": 0,
+      "norm_label": "test_appwrite_webhook.py"
+    },
+    {
+      "label": "load_module()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L18",
+      "id": "tests_test_appwrite_webhook_load_module",
+      "community": 0,
+      "norm_label": "load_module()"
+    },
+    {
+      "label": "FakeRes",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L26",
+      "id": "tests_test_appwrite_webhook_fakeres",
+      "community": 11,
+      "norm_label": "fakeres"
+    },
+    {
+      "label": ".__init__()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L27",
+      "id": "tests_test_appwrite_webhook_fakeres_init",
+      "community": 11,
+      "norm_label": ".__init__()"
+    },
+    {
+      "label": ".json()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L31",
+      "id": "tests_test_appwrite_webhook_fakeres_json",
+      "community": 11,
+      "norm_label": ".json()"
+    },
+    {
+      "label": "FakeSentMessage",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L37",
+      "id": "tests_test_appwrite_webhook_fakesentmessage",
+      "community": 17,
+      "norm_label": "fakesentmessage"
+    },
+    {
+      "label": ".__init__()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L38",
+      "id": "tests_test_appwrite_webhook_fakesentmessage_init",
+      "community": 17,
+      "norm_label": ".__init__()"
+    },
+    {
+      "label": "clear_env()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L42",
+      "id": "tests_test_appwrite_webhook_clear_env",
+      "community": 11,
+      "norm_label": "clear_env()"
+    },
+    {
+      "label": "test_load_settings_requires_session_string()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L55",
+      "id": "tests_test_appwrite_webhook_test_load_settings_requires_session_string",
+      "community": 11,
+      "norm_label": "test_load_settings_requires_session_string()"
+    },
+    {
+      "label": "test_load_settings_with_multiple_sources()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L67",
+      "id": "tests_test_appwrite_webhook_test_load_settings_with_multiple_sources",
+      "community": 11,
+      "norm_label": "test_load_settings_with_multiple_sources()"
+    },
+    {
+      "label": "test_group_message_ids_keeps_album_boundaries()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L85",
+      "id": "tests_test_appwrite_webhook_test_group_message_ids_keeps_album_boundaries",
+      "community": 0,
+      "norm_label": "test_group_message_ids_keeps_album_boundaries()"
+    },
+    {
+      "label": "test_sanitize_message_text_preserves_links_by_default()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L100",
+      "id": "tests_test_appwrite_webhook_test_sanitize_message_text_preserves_links_by_default",
+      "community": 0,
+      "norm_label": "test_sanitize_message_text_preserves_links_by_default()"
+    },
+    {
+      "label": "test_sanitize_message_text_removes_telegram_link_variants_when_enabled()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L106",
+      "id": "tests_test_appwrite_webhook_test_sanitize_message_text_removes_telegram_link_variants_when_enabled",
+      "community": 0,
+      "norm_label": "test_sanitize_message_text_removes_telegram_link_variants_when_enabled()"
+    },
+    {
+      "label": "test_sanitize_message_text_removes_bad_words_and_youtube_when_enabled()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L118",
+      "id": "tests_test_appwrite_webhook_test_sanitize_message_text_removes_bad_words_and_youtube_when_enabled",
+      "community": 0,
+      "norm_label": "test_sanitize_message_text_removes_bad_words_and_youtube_when_enabled()"
+    },
+    {
+      "label": "test_should_skip_message_text_blocks_ad_markers()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L128",
+      "id": "tests_test_appwrite_webhook_test_should_skip_message_text_blocks_ad_markers",
+      "community": 0,
+      "norm_label": "test_should_skip_message_text_blocks_ad_markers()"
+    },
+    {
+      "label": "test_is_gif_message_detects_flag()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L138",
+      "id": "tests_test_appwrite_webhook_test_is_gif_message_detects_flag",
+      "community": 0,
+      "norm_label": "test_is_gif_message_detects_flag()"
+    },
+    {
+      "label": "test_is_gif_message_detects_mp4_animation_variant()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L144",
+      "id": "tests_test_appwrite_webhook_test_is_gif_message_detects_mp4_animation_variant",
+      "community": 0,
+      "norm_label": "test_is_gif_message_detects_mp4_animation_variant()"
+    },
+    {
+      "label": "test_main_returns_error_payload_on_invalid_env()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L160",
+      "id": "tests_test_appwrite_webhook_test_main_returns_error_payload_on_invalid_env",
+      "community": 11,
+      "norm_label": "test_main_returns_error_payload_on_invalid_env()"
+    },
+    {
+      "label": "test_load_state_does_not_use_telegram_fallback_by_default()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L172",
+      "id": "tests_test_appwrite_webhook_test_load_state_does_not_use_telegram_fallback_by_default",
+      "community": 0,
+      "norm_label": "test_load_state_does_not_use_telegram_fallback_by_default()"
+    },
+    {
+      "label": "test_fetch_recent_messages_respects_cutoff_not_last_seen()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L187",
+      "id": "tests_test_appwrite_webhook_test_fetch_recent_messages_respects_cutoff_not_last_seen",
+      "community": 0,
+      "norm_label": "test_fetch_recent_messages_respects_cutoff_not_last_seen()"
+    },
+    {
+      "label": "test_copy_source_messages_forwards_each_group()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L211",
+      "id": "tests_test_appwrite_webhook_test_copy_source_messages_forwards_each_group",
+      "community": 0,
+      "norm_label": "test_copy_source_messages_forwards_each_group()"
+    },
+    {
+      "label": "test_copy_source_messages_skips_ad_messages()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L249",
+      "id": "tests_test_appwrite_webhook_test_copy_source_messages_skips_ad_messages",
+      "community": 0,
+      "norm_label": "test_copy_source_messages_skips_ad_messages()"
+    },
+    {
+      "label": "test_copy_source_messages_skips_gif_messages()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L295",
+      "id": "tests_test_appwrite_webhook_test_copy_source_messages_skips_gif_messages",
+      "community": 0,
+      "norm_label": "test_copy_source_messages_skips_gif_messages()"
+    },
+    {
+      "label": "test_build_state_payload_compacts_when_too_large()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L340",
+      "id": "tests_test_appwrite_webhook_test_build_state_payload_compacts_when_too_large",
+      "community": 0,
+      "norm_label": "test_build_state_payload_compacts_when_too_large()"
+    },
+    {
+      "label": "test_save_run_window_ids_logs_to_backend_and_chunks()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L364",
+      "id": "tests_test_appwrite_webhook_test_save_run_window_ids_logs_to_backend_and_chunks",
+      "community": 0,
+      "norm_label": "test_save_run_window_ids_logs_to_backend_and_chunks()"
+    },
+    {
+      "label": "test_log_copier_execution_retries_and_never_raises()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L403",
+      "id": "tests_test_appwrite_webhook_test_log_copier_execution_retries_and_never_raises",
+      "community": 0,
+      "norm_label": "test_log_copier_execution_retries_and_never_raises()"
+    },
+    {
+      "label": "test_appwrite_api_key_prefers_function_env()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L427",
+      "id": "tests_test_appwrite_webhook_test_appwrite_api_key_prefers_function_env",
+      "community": 0,
+      "norm_label": "test_appwrite_api_key_prefers_function_env()"
+    },
+    {
+      "label": "test_appwrite_create_document_falls_back_to_tablesdb()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L435",
+      "id": "tests_test_appwrite_webhook_test_appwrite_create_document_falls_back_to_tablesdb",
+      "community": 0,
+      "norm_label": "test_appwrite_create_document_falls_back_to_tablesdb()"
+    },
+    {
+      "label": "test_appwrite_create_document_retries_on_row_already_exists()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L454",
+      "id": "tests_test_appwrite_webhook_test_appwrite_create_document_retries_on_row_already_exists",
+      "community": 0,
+      "norm_label": "test_appwrite_create_document_retries_on_row_already_exists()"
+    },
+    {
+      "label": "test_appwrite_create_document_prefers_tables_auto_id()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L474",
+      "id": "tests_test_appwrite_webhook_test_appwrite_create_document_prefers_tables_auto_id",
+      "community": 0,
+      "norm_label": "test_appwrite_create_document_prefers_tables_auto_id()"
+    },
+    {
+      "label": "test_appwrite_list_documents_falls_back_to_rows()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L490",
+      "id": "tests_test_appwrite_webhook_test_appwrite_list_documents_falls_back_to_rows",
+      "community": 0,
+      "norm_label": "test_appwrite_list_documents_falls_back_to_rows()"
+    },
+    {
+      "label": "test_appwrite_build_url_handles_endpoint_without_v1()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L509",
+      "id": "tests_test_appwrite_webhook_test_appwrite_build_url_handles_endpoint_without_v1",
+      "community": 0,
+      "norm_label": "test_appwrite_build_url_handles_endpoint_without_v1()"
+    },
+    {
+      "label": "test_appwrite_build_url_handles_endpoint_with_v1()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L518",
+      "id": "tests_test_appwrite_webhook_test_appwrite_build_url_handles_endpoint_with_v1",
+      "community": 0,
+      "norm_label": "test_appwrite_build_url_handles_endpoint_with_v1()"
+    },
+    {
+      "label": "test_strip_unknown_attribute_from_error()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L527",
+      "id": "tests_test_appwrite_webhook_test_strip_unknown_attribute_from_error",
+      "community": 0,
+      "norm_label": "test_strip_unknown_attribute_from_error()"
+    },
+    {
+      "label": "test_log_copier_execution_retries_after_unknown_attribute()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L537",
+      "id": "tests_test_appwrite_webhook_test_log_copier_execution_retries_after_unknown_attribute",
+      "community": 0,
+      "norm_label": "test_log_copier_execution_retries_after_unknown_attribute()"
+    },
+    {
+      "label": "test_adjust_json_field_by_error_array_type()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L576",
+      "id": "tests_test_appwrite_webhook_test_adjust_json_field_by_error_array_type",
+      "community": 0,
+      "norm_label": "test_adjust_json_field_by_error_array_type()"
+    },
+    {
+      "label": "test_adjust_json_field_by_error_string_type()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L588",
+      "id": "tests_test_appwrite_webhook_test_adjust_json_field_by_error_string_type",
+      "community": 0,
+      "norm_label": "test_adjust_json_field_by_error_string_type()"
+    },
+    {
+      "label": "test_adjust_json_field_by_error_array_item_must_be_string()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L600",
+      "id": "tests_test_appwrite_webhook_test_adjust_json_field_by_error_array_item_must_be_string",
+      "community": 0,
+      "norm_label": "test_adjust_json_field_by_error_array_item_must_be_string()"
+    },
+    {
+      "label": "test_adjust_json_field_by_error_valid_string_phrase()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L612",
+      "id": "tests_test_appwrite_webhook_test_adjust_json_field_by_error_valid_string_phrase",
+      "community": 0,
+      "norm_label": "test_adjust_json_field_by_error_valid_string_phrase()"
+    },
+    {
+      "label": "test_parse_run_snapshot_message()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L624",
+      "id": "tests_test_appwrite_webhook_test_parse_run_snapshot_message",
+      "community": 0,
+      "norm_label": "test_parse_run_snapshot_message()"
+    },
+    {
+      "label": "test_load_recent_run_snapshot_ids_filters_by_time()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L634",
+      "id": "tests_test_appwrite_webhook_test_load_recent_run_snapshot_ids_filters_by_time",
+      "community": 0,
+      "norm_label": "test_load_recent_run_snapshot_ids_filters_by_time()"
+    },
+    {
+      "label": "test_load_recent_run_snapshot_ids_uses_message_ids_json()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L667",
+      "id": "tests_test_appwrite_webhook_test_load_recent_run_snapshot_ids_uses_message_ids_json",
+      "community": 0,
+      "norm_label": "test_load_recent_run_snapshot_ids_uses_message_ids_json()"
+    },
+    {
+      "label": "test_load_recent_run_snapshot_ids_uses_message_ids_json_string()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L694",
+      "id": "tests_test_appwrite_webhook_test_load_recent_run_snapshot_ids_uses_message_ids_json_string",
+      "community": 0,
+      "norm_label": "test_load_recent_run_snapshot_ids_uses_message_ids_json_string()"
+    },
+    {
+      "label": "test_copy_source_messages_includes_run_snapshot()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L721",
+      "id": "tests_test_appwrite_webhook_test_copy_source_messages_includes_run_snapshot",
+      "community": 0,
+      "norm_label": "test_copy_source_messages_includes_run_snapshot()"
+    },
+    {
+      "label": "test_load_state_prefers_payload_json()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L762",
+      "id": "tests_test_appwrite_webhook_test_load_state_prefers_payload_json",
+      "community": 0,
+      "norm_label": "test_load_state_prefers_payload_json()"
+    },
+    {
+      "label": "test_load_state_accepts_payload_json_string()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L783",
+      "id": "tests_test_appwrite_webhook_test_load_state_accepts_payload_json_string",
+      "community": 0,
+      "norm_label": "test_load_state_accepts_payload_json_string()"
+    },
+    {
+      "label": "test_save_state_clears_stale_error_on_successful_patch()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L804",
+      "id": "tests_test_appwrite_webhook_test_save_state_clears_stale_error_on_successful_patch",
+      "community": 0,
+      "norm_label": "test_save_state_clears_stale_error_on_successful_patch()"
+    },
+    {
+      "label": "test_save_state_reports_real_db_error_after_retry_exhaustion()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L833",
+      "id": "tests_test_appwrite_webhook_test_save_state_reports_real_db_error_after_retry_exhaustion",
+      "community": 0,
+      "norm_label": "test_save_state_reports_real_db_error_after_retry_exhaustion()"
+    },
+    {
+      "label": "test_save_state_handles_legacy_document_already_exists_conflict()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L860",
+      "id": "tests_test_appwrite_webhook_test_save_state_handles_legacy_document_already_exists_conflict",
+      "community": 0,
+      "norm_label": "test_save_state_handles_legacy_document_already_exists_conflict()"
+    },
+    {
+      "label": "test_copy_source_messages_merges_snapshot_ids_with_live_fetch()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L894",
+      "id": "tests_test_appwrite_webhook_test_copy_source_messages_merges_snapshot_ids_with_live_fetch",
+      "community": 0,
+      "norm_label": "test_copy_source_messages_merges_snapshot_ids_with_live_fetch()"
+    },
+    {
+      "label": "test_copy_source_messages_skips_ids_at_or_below_last_seen()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L945",
+      "id": "tests_test_appwrite_webhook_test_copy_source_messages_skips_ids_at_or_below_last_seen",
+      "community": 0,
+      "norm_label": "test_copy_source_messages_skips_ids_at_or_below_last_seen()"
+    },
+    {
+      "label": "test_copy_source_messages_ignores_recovered_id_below_last_seen()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L990",
+      "id": "tests_test_appwrite_webhook_test_copy_source_messages_ignores_recovered_id_below_last_seen",
+      "community": 0,
+      "norm_label": "test_copy_source_messages_ignores_recovered_id_below_last_seen()"
+    },
+    {
+      "label": "test_copy_source_messages_self_heals_when_cursor_ahead()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L1040",
+      "id": "tests_test_appwrite_webhook_test_copy_source_messages_self_heals_when_cursor_ahead",
+      "community": 0,
+      "norm_label": "test_copy_source_messages_self_heals_when_cursor_ahead()"
+    },
+    {
+      "label": "test_repost_messages_without_forward_preserves_inline_entities()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L1085",
+      "id": "tests_test_appwrite_webhook_test_repost_messages_without_forward_preserves_inline_entities",
+      "community": 0,
+      "norm_label": "test_repost_messages_without_forward_preserves_inline_entities()"
+    },
+    {
+      "label": "test_repost_messages_without_forward_preserves_entities_without_stripping_text()",
+      "file_type": "code",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L1131",
+      "id": "tests_test_appwrite_webhook_test_repost_messages_without_forward_preserves_entities_without_stripping_text",
+      "community": 0,
+      "norm_label": "test_repost_messages_without_forward_preserves_entities_without_stripping_text()"
+    },
+    {
+      "label": "test_config.py",
+      "file_type": "code",
+      "source_file": "tests/test_config.py",
+      "source_location": "L1",
+      "id": "tests_test_config_py",
+      "community": 9,
+      "norm_label": "test_config.py"
+    },
+    {
+      "label": "clear_env()",
+      "file_type": "code",
+      "source_file": "tests/test_config.py",
+      "source_location": "L21",
+      "id": "tests_test_config_clear_env",
+      "community": 9,
+      "norm_label": "clear_env()"
+    },
+    {
+      "label": "test_from_env_success()",
+      "file_type": "code",
+      "source_file": "tests/test_config.py",
+      "source_location": "L26",
+      "id": "tests_test_config_test_from_env_success",
+      "community": 9,
+      "norm_label": "test_from_env_success()"
+    },
+    {
+      "label": "test_from_env_missing_required()",
+      "file_type": "code",
+      "source_file": "tests/test_config.py",
+      "source_location": "L47",
+      "id": "tests_test_config_test_from_env_missing_required",
+      "community": 9,
+      "norm_label": "test_from_env_missing_required()"
+    },
+    {
+      "label": "test_from_env_invalid_integer()",
+      "file_type": "code",
+      "source_file": "tests/test_config.py",
+      "source_location": "L56",
+      "id": "tests_test_config_test_from_env_invalid_integer",
+      "community": 9,
+      "norm_label": "test_from_env_invalid_integer()"
+    },
+    {
+      "label": "test_from_env_multiple_source_channel_ids()",
+      "file_type": "code",
+      "source_file": "tests/test_config.py",
+      "source_location": "L67",
+      "id": "tests_test_config_test_from_env_multiple_source_channel_ids",
+      "community": 9,
+      "norm_label": "test_from_env_multiple_source_channel_ids()"
+    },
+    {
+      "label": "test_from_env_invalid_source_channel_ids()",
+      "file_type": "code",
+      "source_file": "tests/test_config.py",
+      "source_location": "L79",
+      "id": "tests_test_config_test_from_env_invalid_source_channel_ids",
+      "community": 9,
+      "norm_label": "test_from_env_invalid_source_channel_ids()"
+    },
+    {
+      "label": "test_from_env_missing_source_channel_variables()",
+      "file_type": "code",
+      "source_file": "tests/test_config.py",
+      "source_location": "L90",
+      "id": "tests_test_config_test_from_env_missing_source_channel_variables",
+      "community": 9,
+      "norm_label": "test_from_env_missing_source_channel_variables()"
+    },
+    {
+      "label": "test_main.py",
+      "file_type": "code",
+      "source_file": "tests/test_main.py",
+      "source_location": "L1",
+      "id": "tests_test_main_py",
+      "community": 4,
+      "norm_label": "test_main.py"
+    },
+    {
+      "label": "test_copy_single_message_calls_telethon_copy()",
+      "file_type": "code",
+      "source_file": "tests/test_main.py",
+      "source_location": "L14",
+      "id": "tests_test_main_test_copy_single_message_calls_telethon_copy",
+      "community": 4,
+      "norm_label": "test_copy_single_message_calls_telethon_copy()"
+    },
+    {
+      "label": "test_copy_media_group_calls_telethon_copy_with_list()",
+      "file_type": "code",
+      "source_file": "tests/test_main.py",
+      "source_location": "L35",
+      "id": "tests_test_main_test_copy_media_group_calls_telethon_copy_with_list",
+      "community": 4,
+      "norm_label": "test_copy_media_group_calls_telethon_copy_with_list()"
+    },
+    {
+      "label": "test_process_new_message_event_skips_grouped_messages()",
+      "file_type": "code",
+      "source_file": "tests/test_main.py",
+      "source_location": "L58",
+      "id": "tests_test_main_test_process_new_message_event_skips_grouped_messages",
+      "community": 4,
+      "norm_label": "test_process_new_message_event_skips_grouped_messages()"
+    },
+    {
+      "label": "test_process_new_message_event_calls_copy_for_regular_message()",
+      "file_type": "code",
+      "source_file": "tests/test_main.py",
+      "source_location": "L76",
+      "id": "tests_test_main_test_process_new_message_event_calls_copy_for_regular_message",
+      "community": 4,
+      "norm_label": "test_process_new_message_event_calls_copy_for_regular_message()"
+    },
+    {
+      "label": "test_process_album_event_calls_copy_media_group()",
+      "file_type": "code",
+      "source_file": "tests/test_main.py",
+      "source_location": "L102",
+      "id": "tests_test_main_test_process_album_event_calls_copy_media_group",
+      "community": 4,
+      "norm_label": "test_process_album_event_calls_copy_media_group()"
+    },
+    {
+      "label": "test_process_new_message_event_handles_floodwait()",
+      "file_type": "code",
+      "source_file": "tests/test_main.py",
+      "source_location": "L126",
+      "id": "tests_test_main_test_process_new_message_event_handles_floodwait",
+      "community": 4,
+      "norm_label": "test_process_new_message_event_handles_floodwait()"
+    },
+    {
+      "label": "test_process_new_message_event_end_to_end_in_process()",
+      "file_type": "code",
+      "source_file": "tests/test_main.py",
+      "source_location": "L151",
+      "id": "tests_test_main_test_process_new_message_event_end_to_end_in_process",
+      "community": 4,
+      "norm_label": "test_process_new_message_event_end_to_end_in_process()"
+    },
+    {
+      "label": "test_process_album_event_end_to_end_in_process()",
+      "file_type": "code",
+      "source_file": "tests/test_main.py",
+      "source_location": "L173",
+      "id": "tests_test_main_test_process_album_event_end_to_end_in_process",
+      "community": 4,
+      "norm_label": "test_process_album_event_end_to_end_in_process()"
+    },
+    {
+      "label": "test_start_client_bot_mode_uses_bot_token()",
+      "file_type": "code",
+      "source_file": "tests/test_main.py",
+      "source_location": "L196",
+      "id": "tests_test_main_test_start_client_bot_mode_uses_bot_token",
+      "community": 4,
+      "norm_label": "test_start_client_bot_mode_uses_bot_token()"
+    },
+    {
+      "label": "test_start_client_non_interactive_without_session_raises()",
+      "file_type": "code",
+      "source_file": "tests/test_main.py",
+      "source_location": "L205",
+      "id": "tests_test_main_test_start_client_non_interactive_without_session_raises",
+      "community": 4,
+      "norm_label": "test_start_client_non_interactive_without_session_raises()"
+    },
+    {
+      "label": "test_start_client_user_mode_eoferror_is_actionable()",
+      "file_type": "code",
+      "source_file": "tests/test_main.py",
+      "source_location": "L219",
+      "id": "tests_test_main_test_start_client_user_mode_eoferror_is_actionable",
+      "community": 4,
+      "norm_label": "test_start_client_user_mode_eoferror_is_actionable()"
+    },
+    {
+      "label": "test_start_client_non_interactive_with_authorized_session()",
+      "file_type": "code",
+      "source_file": "tests/test_main.py",
+      "source_location": "L235",
+      "id": "tests_test_main_test_start_client_non_interactive_with_authorized_session",
+      "community": 4,
+      "norm_label": "test_start_client_non_interactive_with_authorized_session()"
+    },
+    {
+      "label": "Settings",
+      "file_type": "code",
+      "source_file": "config.py",
+      "source_location": {
+        "start_line": 18,
+        "end_line": 26
+      },
+      "id": "config_settings",
+      "community": 18,
+      "norm_label": "settings"
+    },
+    {
+      "label": "Settings.from_env",
+      "file_type": "code",
+      "source_file": "config.py",
+      "source_location": {
+        "start_line": 28,
+        "end_line": 74
+      },
+      "id": "config_from_env",
+      "community": 3,
+      "norm_label": "settings.from_env"
+    },
+    {
+      "label": "_generate",
+      "file_type": "code",
+      "source_file": "generate_session_string.py",
+      "source_location": {
+        "start_line": 16,
+        "end_line": 30
+      },
+      "id": "generate_session_string_generate",
+      "community": 19,
+      "norm_label": "_generate"
+    },
+    {
+      "label": "run",
+      "file_type": "code",
+      "source_file": "main.py",
+      "source_location": {
+        "start_line": 109,
+        "end_line": 171
+      },
+      "id": "main_run",
+      "community": 3,
+      "norm_label": "run"
+    },
+    {
+      "label": "main",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": {
+        "start_line": 1056,
+        "end_line": 1109
+      },
+      "id": "webhook_main",
+      "community": 3,
+      "norm_label": "main"
+    },
+    {
+      "label": "_copy_source_messages",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": {
+        "start_line": 645,
+        "end_line": 866
+      },
+      "rationale": "Implements strict lookback fetch with checkpoint gating and duplicate removal via recent ID window. Includes cursor self-heal if state is ahead of live fetch.",
+      "id": "webhook_copysourcemessages",
+      "community": 3,
+      "norm_label": "_copy_source_messages"
+    },
+    {
+      "label": "_load_state",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": {
+        "start_line": 429,
+        "end_line": 464
+      },
+      "id": "webhook_loadstate",
+      "community": 3,
+      "norm_label": "_load_state"
+    },
+    {
+      "label": "_save_state",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": {
+        "start_line": 467,
+        "end_line": 568
+      },
+      "rationale": "Handles oversized state payloads by compacting them before save to prevent MessageTooLongError in Telegram Saved Messages fallback.",
+      "id": "webhook_savestate",
+      "community": 3,
+      "norm_label": "_save_state"
+    },
+    {
+      "label": "_forward_with_fallback",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": {
+        "start_line": 907,
+        "end_line": 986
+      },
+      "id": "webhook_forwardwithfallback",
+      "community": 3,
+      "norm_label": "_forward_with_fallback"
+    },
+    {
+      "label": "_repost_messages_without_forward",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": {
+        "start_line": 989,
+        "end_line": 1053
+      },
+      "rationale": "Provides a fallback path for protected/forward-restricted chats by directly sending content without forward attribution.",
+      "id": "webhook_repostmessageswithoutforward",
+      "community": 3,
+      "norm_label": "_repost_messages_without_forward"
+    },
+    {
+      "label": "log_copier_execution",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": {
+        "start_line": 286,
+        "end_line": 322
+      },
+      "id": "webhook_logcopierexecution",
+      "community": 20,
+      "norm_label": "log_copier_execution"
+    },
+    {
+      "label": "AppwriteSettings",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": {
+        "start_line": 25,
+        "end_line": 32
+      },
+      "id": "webhook_appwritesettings",
+      "community": 21,
+      "norm_label": "appwritesettings"
+    },
+    {
+      "label": "Handover Notes",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "id": "agents_md",
+      "community": 3,
+      "norm_label": "handover notes"
+    },
+    {
+      "label": "AI Integration Guide",
+      "file_type": "document",
+      "source_file": "AI.Readme.md",
+      "rationale": "Proposes a shadow mode for AI evaluation where decisions are logged but do not affect output until validated.",
+      "id": "ai_readme_md",
+      "community": 3,
+      "norm_label": "ai integration guide"
+    },
+    {
+      "label": "Appwrite Deployment",
+      "file_type": "document",
+      "source_file": "APPWRITE_DEPLOY.md",
+      "id": "appwrite_deploy_md",
+      "community": 3,
+      "norm_label": "appwrite deployment"
+    },
+    {
+      "label": "Project README",
+      "file_type": "document",
+      "source_file": "README.md",
+      "id": "readme_md",
+      "community": 3,
+      "norm_label": "project readme"
+    },
+    {
+      "label": "_sanitize_message_text",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": {
+        "start_line": 371,
+        "end_line": 403
+      },
+      "rationale": "Removes Telegram and YouTube links and specific bad words to clean content before forwarding.",
+      "id": "webhook_sanitizemessagetext",
+      "community": 3,
+      "norm_label": "_sanitize_message_text"
+    },
+    {
+      "label": "_should_skip_message_text",
+      "file_type": "code",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": {
+        "start_line": 406,
+        "end_line": 413
+      },
+      "rationale": "Blocks messages containing ad markers or generic ad words if enabled.",
+      "id": "webhook_shouldskipmessagetext",
+      "community": 3,
+      "norm_label": "_should_skip_message_text"
+    }
+  ],
+  "links": [
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "config.py",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "config_py",
+      "target": "telegram_copier_config_required_env",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "config.py",
+      "source_location": "L18",
+      "weight": 1.0,
+      "source": "config_py",
+      "target": "telegram_copier_config_settings",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "config.py",
+      "source_location": "L28",
+      "weight": 1.0,
+      "source": "config_py",
+      "target": "telegram_copier_config_from_env",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "main.py",
+      "source_location": "L12",
+      "weight": 1.0,
+      "source": "main_py",
+      "target": "config_py",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "config.py",
+      "source_location": "L29",
+      "weight": 1.0,
+      "source": "telegram_copier_config_from_env",
+      "target": "telegram_copier_config_required_env",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "generate_session_string.py",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "generate_session_string_py",
+      "target": "telegram_copier_generate_session_string_required_env",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "generate_session_string.py",
+      "source_location": "L16",
+      "weight": 1.0,
+      "source": "generate_session_string_py",
+      "target": "telegram_copier_generate_session_string_generate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "generate_session_string.py",
+      "source_location": "L31",
+      "weight": 1.0,
+      "source": "generate_session_string_py",
+      "target": "telegram_copier_generate_session_string_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "generate_session_string.py",
+      "source_location": "L18",
+      "weight": 1.0,
+      "source": "telegram_copier_generate_session_string_generate",
+      "target": "telegram_copier_generate_session_string_required_env",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "generate_session_string.py",
+      "source_location": "L33",
+      "weight": 1.0,
+      "source": "telegram_copier_generate_session_string_main",
+      "target": "telegram_copier_generate_session_string_generate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main.py",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "main_py",
+      "target": "telegram_copier_main_setup_logging",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main.py",
+      "source_location": "L27",
+      "weight": 1.0,
+      "source": "main_py",
+      "target": "telegram_copier_main_copy_single_message",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main.py",
+      "source_location": "L39",
+      "weight": 1.0,
+      "source": "main_py",
+      "target": "telegram_copier_main_copy_media_group",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main.py",
+      "source_location": "L56",
+      "weight": 1.0,
+      "source": "main_py",
+      "target": "telegram_copier_main_process_album_event",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main.py",
+      "source_location": "L76",
+      "weight": 1.0,
+      "source": "main_py",
+      "target": "telegram_copier_main_process_new_message_event",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main.py",
+      "source_location": "L102",
+      "weight": 1.0,
+      "source": "main_py",
+      "target": "telegram_copier_main_start_client",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main.py",
+      "source_location": "L132",
+      "weight": 1.0,
+      "source": "main_py",
+      "target": "telegram_copier_main_run",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main.py",
+      "source_location": "L134",
+      "weight": 1.0,
+      "source": "telegram_copier_main_run",
+      "target": "telegram_copier_main_setup_logging",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main.py",
+      "source_location": "L86",
+      "weight": 1.0,
+      "source": "telegram_copier_main_process_new_message_event",
+      "target": "telegram_copier_main_copy_single_message",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main.py",
+      "source_location": "L60",
+      "weight": 1.0,
+      "source": "telegram_copier_main_process_album_event",
+      "target": "telegram_copier_main_copy_media_group",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main.py",
+      "source_location": "L137",
+      "weight": 1.0,
+      "source": "telegram_copier_main_run",
+      "target": "telegram_copier_main_start_client",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "print_dialog_ids.py",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "print_dialog_ids_py",
+      "target": "telegram_copier_print_dialog_ids_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "__init__.py",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "telegram_copier_init_rationale_1",
+      "target": "init_py",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/album_flush/src/main.py",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "appwrite_functions_album_flush_src_main_py",
+      "target": "src_main_respond_json",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/album_flush/src/main.py",
+      "source_location": "L16",
+      "weight": 1.0,
+      "source": "appwrite_functions_album_flush_src_main_py",
+      "target": "src_main_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1884",
+      "weight": 1.0,
+      "source": "src_main_main",
+      "target": "src_main_respond_json",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L743",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_respond_json",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1838",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1839",
+      "weight": 1.0,
+      "source": "src_main_main",
+      "target": "src_main_safe_log",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1841",
+      "weight": 1.0,
+      "source": "src_main_main",
+      "target": "src_main_load_settings_from_env",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1847",
+      "weight": 1.0,
+      "source": "src_main_main",
+      "target": "src_main_run_once_sync",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L27",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_appwritesettings",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L38",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_floodhalt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L56",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_appwrite_endpoint",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L64",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_appwrite_project_id",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L68",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_appwrite_api_key",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L76",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_appwrite_jwt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L80",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_has_appwrite_auth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L84",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_appwrite_auth_mode",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L92",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_log_database_id",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L96",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_log_collection_id",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L100",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_state_database_id",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L104",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_state_collection_id",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L108",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_is_db_logging_enabled",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L112",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_is_db_state_enabled",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L116",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_db_logging_disable_reason",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L129",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_db_state_disable_reason",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L142",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_appwrite_env_diagnostics",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L155",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_appwrite_headers",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L169",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_appwrite_build_url",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L182",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_appwrite_request_json",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L208",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_appwrite_create_document",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L246",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_appwrite_list_documents",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L270",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_serialize_message_ids",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L274",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_parse_serialized_message_ids",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L287",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_parse_message_ids_json_value",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L300",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_strip_unknown_attribute_from_error",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L312",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_coerce_json_like_fields_to_text",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L328",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_adjust_json_field_by_error",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L372",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_build_log_part_payload",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L393",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_log_copier_execution",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L433",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_now_utc_iso",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L437",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_now_ist_iso",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L441",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_state_payload_text",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L445",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_copy_state",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L452",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_compact_state_for_save",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L474",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_build_state_payload",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L507",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_build_state_payload_with_limit",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L536",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_split_id_tokens",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L556",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_save_run_window_ids",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L596",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_parse_run_snapshot_message",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L629",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_load_recent_run_snapshot_ids",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L685",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_parse_source_ids",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L696",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_load_settings_from_env",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L757",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_safe_log",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L768",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_extract_state",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L786",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_get_source_state",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L797",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_set_source_state",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L815",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_set_run_meta",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L821",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_sanitize_message_text",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L854",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_should_skip_message_text",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L864",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_is_cursor_gate_enabled",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L868",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_is_snapshot_recovery_enabled",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L872",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_is_telegram_state_fallback_enabled",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L876",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_fetch_recent_messages",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L901",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_has_sendable_media",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L911",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_is_gif_message",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L942",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_load_state",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L995",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_save_state",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1114",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_group_message_ids",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1149",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_copy_source_messages",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1582",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_copy_single_with_optional_sanitize",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1634",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_forward_with_fallback",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1726",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_repost_messages_without_forward",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1798",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_run_once",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1826",
+      "weight": 1.0,
+      "source": "appwrite_functions_webhook_src_main_py",
+      "target": "src_main_run_once_sync",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L732",
+      "weight": 1.0,
+      "source": "src_main_load_settings_from_env",
+      "target": "src_main_appwritesettings",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L38",
+      "weight": 1.0,
+      "source": "src_main_floodhalt",
+      "target": "exception",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1622",
+      "weight": 1.0,
+      "source": "src_main_copy_single_with_optional_sanitize",
+      "target": "src_main_floodhalt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1681",
+      "weight": 1.0,
+      "source": "src_main_forward_with_fallback",
+      "target": "src_main_floodhalt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1788",
+      "weight": 1.0,
+      "source": "src_main_repost_messages_without_forward",
+      "target": "src_main_floodhalt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L109",
+      "weight": 1.0,
+      "source": "src_main_is_db_logging_enabled",
+      "target": "src_main_appwrite_endpoint",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L113",
+      "weight": 1.0,
+      "source": "src_main_is_db_state_enabled",
+      "target": "src_main_appwrite_endpoint",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L118",
+      "weight": 1.0,
+      "source": "src_main_db_logging_disable_reason",
+      "target": "src_main_appwrite_endpoint",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L131",
+      "weight": 1.0,
+      "source": "src_main_db_state_disable_reason",
+      "target": "src_main_appwrite_endpoint",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L145",
+      "weight": 1.0,
+      "source": "src_main_appwrite_env_diagnostics",
+      "target": "src_main_appwrite_endpoint",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L170",
+      "weight": 1.0,
+      "source": "src_main_appwrite_build_url",
+      "target": "src_main_appwrite_endpoint",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L146",
+      "weight": 1.0,
+      "source": "src_main_appwrite_env_diagnostics",
+      "target": "src_main_appwrite_project_id",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L157",
+      "weight": 1.0,
+      "source": "src_main_appwrite_headers",
+      "target": "src_main_appwrite_project_id",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L81",
+      "weight": 1.0,
+      "source": "src_main_has_appwrite_auth",
+      "target": "src_main_appwrite_api_key",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L85",
+      "weight": 1.0,
+      "source": "src_main_appwrite_auth_mode",
+      "target": "src_main_appwrite_api_key",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L160",
+      "weight": 1.0,
+      "source": "src_main_appwrite_headers",
+      "target": "src_main_appwrite_api_key",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L81",
+      "weight": 1.0,
+      "source": "src_main_has_appwrite_auth",
+      "target": "src_main_appwrite_jwt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L87",
+      "weight": 1.0,
+      "source": "src_main_appwrite_auth_mode",
+      "target": "src_main_appwrite_jwt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L161",
+      "weight": 1.0,
+      "source": "src_main_appwrite_headers",
+      "target": "src_main_appwrite_jwt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L109",
+      "weight": 1.0,
+      "source": "src_main_is_db_logging_enabled",
+      "target": "src_main_has_appwrite_auth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L113",
+      "weight": 1.0,
+      "source": "src_main_is_db_state_enabled",
+      "target": "src_main_has_appwrite_auth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L120",
+      "weight": 1.0,
+      "source": "src_main_db_logging_disable_reason",
+      "target": "src_main_has_appwrite_auth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L133",
+      "weight": 1.0,
+      "source": "src_main_db_state_disable_reason",
+      "target": "src_main_has_appwrite_auth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L147",
+      "weight": 1.0,
+      "source": "src_main_appwrite_env_diagnostics",
+      "target": "src_main_has_appwrite_auth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1572",
+      "weight": 1.0,
+      "source": "src_main_copy_source_messages",
+      "target": "src_main_appwrite_auth_mode",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L101",
+      "weight": 1.0,
+      "source": "src_main_state_database_id",
+      "target": "src_main_log_database_id",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L109",
+      "weight": 1.0,
+      "source": "src_main_is_db_logging_enabled",
+      "target": "src_main_log_database_id",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L122",
+      "weight": 1.0,
+      "source": "src_main_db_logging_disable_reason",
+      "target": "src_main_log_database_id",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L148",
+      "weight": 1.0,
+      "source": "src_main_appwrite_env_diagnostics",
+      "target": "src_main_log_database_id",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L400",
+      "weight": 1.0,
+      "source": "src_main_log_copier_execution",
+      "target": "src_main_log_database_id",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L637",
+      "weight": 1.0,
+      "source": "src_main_load_recent_run_snapshot_ids",
+      "target": "src_main_log_database_id",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L150",
+      "weight": 1.0,
+      "source": "src_main_appwrite_env_diagnostics",
+      "target": "src_main_log_collection_id",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L401",
+      "weight": 1.0,
+      "source": "src_main_log_copier_execution",
+      "target": "src_main_log_collection_id",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L638",
+      "weight": 1.0,
+      "source": "src_main_load_recent_run_snapshot_ids",
+      "target": "src_main_log_collection_id",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L113",
+      "weight": 1.0,
+      "source": "src_main_is_db_state_enabled",
+      "target": "src_main_state_database_id",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L135",
+      "weight": 1.0,
+      "source": "src_main_db_state_disable_reason",
+      "target": "src_main_state_database_id",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L149",
+      "weight": 1.0,
+      "source": "src_main_appwrite_env_diagnostics",
+      "target": "src_main_state_database_id",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L946",
+      "weight": 1.0,
+      "source": "src_main_load_state",
+      "target": "src_main_state_database_id",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L999",
+      "weight": 1.0,
+      "source": "src_main_save_state",
+      "target": "src_main_state_database_id",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L151",
+      "weight": 1.0,
+      "source": "src_main_appwrite_env_diagnostics",
+      "target": "src_main_state_collection_id",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L947",
+      "weight": 1.0,
+      "source": "src_main_load_state",
+      "target": "src_main_state_collection_id",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1000",
+      "weight": 1.0,
+      "source": "src_main_save_state",
+      "target": "src_main_state_collection_id",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L396",
+      "weight": 1.0,
+      "source": "src_main_log_copier_execution",
+      "target": "src_main_is_db_logging_enabled",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L635",
+      "weight": 1.0,
+      "source": "src_main_load_recent_run_snapshot_ids",
+      "target": "src_main_is_db_logging_enabled",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1570",
+      "weight": 1.0,
+      "source": "src_main_copy_source_messages",
+      "target": "src_main_is_db_logging_enabled",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L943",
+      "weight": 1.0,
+      "source": "src_main_load_state",
+      "target": "src_main_is_db_state_enabled",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L998",
+      "weight": 1.0,
+      "source": "src_main_save_state",
+      "target": "src_main_is_db_state_enabled",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1571",
+      "weight": 1.0,
+      "source": "src_main_copy_source_messages",
+      "target": "src_main_is_db_state_enabled",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L397",
+      "weight": 1.0,
+      "source": "src_main_log_copier_execution",
+      "target": "src_main_db_logging_disable_reason",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1091",
+      "weight": 1.0,
+      "source": "src_main_save_state",
+      "target": "src_main_db_state_disable_reason",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1575",
+      "weight": 1.0,
+      "source": "src_main_copy_source_messages",
+      "target": "src_main_appwrite_env_diagnostics",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L187",
+      "weight": 1.0,
+      "source": "src_main_appwrite_request_json",
+      "target": "src_main_appwrite_headers",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L185",
+      "weight": 1.0,
+      "source": "src_main_appwrite_request_json",
+      "target": "src_main_appwrite_build_url",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L211",
+      "weight": 1.0,
+      "source": "src_main_appwrite_create_document",
+      "target": "src_main_appwrite_request_json",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L248",
+      "weight": 1.0,
+      "source": "src_main_appwrite_list_documents",
+      "target": "src_main_appwrite_request_json",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1023",
+      "weight": 1.0,
+      "source": "src_main_save_state",
+      "target": "src_main_appwrite_request_json",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L405",
+      "weight": 1.0,
+      "source": "src_main_log_copier_execution",
+      "target": "src_main_appwrite_create_document",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1066",
+      "weight": 1.0,
+      "source": "src_main_save_state",
+      "target": "src_main_appwrite_create_document",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L636",
+      "weight": 1.0,
+      "source": "src_main_load_recent_run_snapshot_ids",
+      "target": "src_main_appwrite_list_documents",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L945",
+      "weight": 1.0,
+      "source": "src_main_load_state",
+      "target": "src_main_appwrite_list_documents",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L388",
+      "weight": 1.0,
+      "source": "src_main_build_log_part_payload",
+      "target": "src_main_serialize_message_ids",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L350",
+      "weight": 1.0,
+      "source": "src_main_adjust_json_field_by_error",
+      "target": "src_main_parse_serialized_message_ids",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L661",
+      "weight": 1.0,
+      "source": "src_main_load_recent_run_snapshot_ids",
+      "target": "src_main_parse_serialized_message_ids",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L657",
+      "weight": 1.0,
+      "source": "src_main_load_recent_run_snapshot_ids",
+      "target": "src_main_parse_message_ids_json_value",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L409",
+      "weight": 1.0,
+      "source": "src_main_log_copier_execution",
+      "target": "src_main_strip_unknown_attribute_from_error",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1075",
+      "weight": 1.0,
+      "source": "src_main_save_state",
+      "target": "src_main_strip_unknown_attribute_from_error",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L411",
+      "weight": 1.0,
+      "source": "src_main_log_copier_execution",
+      "target": "src_main_adjust_json_field_by_error",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1077",
+      "weight": 1.0,
+      "source": "src_main_save_state",
+      "target": "src_main_adjust_json_field_by_error",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L389",
+      "weight": 1.0,
+      "source": "src_main_build_log_part_payload",
+      "target": "src_main_now_utc_iso",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L582",
+      "weight": 1.0,
+      "source": "src_main_save_run_window_ids",
+      "target": "src_main_build_log_part_payload",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L424",
+      "weight": 1.0,
+      "source": "src_main_log_copier_execution",
+      "target": "src_main_now_utc_iso",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L590",
+      "weight": 1.0,
+      "source": "src_main_save_run_window_ids",
+      "target": "src_main_log_copier_execution",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L394",
+      "weight": 1.0,
+      "source": "src_main_rationale_394",
+      "target": "src_main_log_copier_execution",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L501",
+      "weight": 1.0,
+      "source": "src_main_build_state_payload",
+      "target": "src_main_now_utc_iso",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L811",
+      "weight": 1.0,
+      "source": "src_main_set_source_state",
+      "target": "src_main_now_utc_iso",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1168",
+      "weight": 1.0,
+      "source": "src_main_copy_source_messages",
+      "target": "src_main_now_utc_iso",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L500",
+      "weight": 1.0,
+      "source": "src_main_build_state_payload",
+      "target": "src_main_now_ist_iso",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L810",
+      "weight": 1.0,
+      "source": "src_main_set_source_state",
+      "target": "src_main_now_ist_iso",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1167",
+      "weight": 1.0,
+      "source": "src_main_copy_source_messages",
+      "target": "src_main_now_ist_iso",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L475",
+      "weight": 1.0,
+      "source": "src_main_build_state_payload",
+      "target": "src_main_state_payload_text",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L521",
+      "weight": 1.0,
+      "source": "src_main_build_state_payload_with_limit",
+      "target": "src_main_state_payload_text",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L453",
+      "weight": 1.0,
+      "source": "src_main_compact_state_for_save",
+      "target": "src_main_copy_state",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L479",
+      "weight": 1.0,
+      "source": "src_main_build_state_payload",
+      "target": "src_main_compact_state_for_save",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1009",
+      "weight": 1.0,
+      "source": "src_main_save_state",
+      "target": "src_main_compact_state_for_save",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L508",
+      "weight": 1.0,
+      "source": "src_main_build_state_payload_with_limit",
+      "target": "src_main_build_state_payload",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L997",
+      "weight": 1.0,
+      "source": "src_main_save_state",
+      "target": "src_main_build_state_payload",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1008",
+      "weight": 1.0,
+      "source": "src_main_save_state",
+      "target": "src_main_build_state_payload_with_limit",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L576",
+      "weight": 1.0,
+      "source": "src_main_save_run_window_ids",
+      "target": "src_main_split_id_tokens",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1337",
+      "weight": 1.0,
+      "source": "src_main_copy_source_messages",
+      "target": "src_main_save_run_window_ids",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L671",
+      "weight": 1.0,
+      "source": "src_main_load_recent_run_snapshot_ids",
+      "target": "src_main_parse_run_snapshot_message",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1178",
+      "weight": 1.0,
+      "source": "src_main_copy_source_messages",
+      "target": "src_main_load_recent_run_snapshot_ids",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L713",
+      "weight": 1.0,
+      "source": "src_main_load_settings_from_env",
+      "target": "src_main_parse_source_ids",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L964",
+      "weight": 1.0,
+      "source": "src_main_load_state",
+      "target": "src_main_extract_state",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1192",
+      "weight": 1.0,
+      "source": "src_main_copy_source_messages",
+      "target": "src_main_get_source_state",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1318",
+      "weight": 1.0,
+      "source": "src_main_copy_source_messages",
+      "target": "src_main_set_source_state",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1164",
+      "weight": 1.0,
+      "source": "src_main_copy_source_messages",
+      "target": "src_main_set_run_meta",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1285",
+      "weight": 1.0,
+      "source": "src_main_copy_source_messages",
+      "target": "src_main_sanitize_message_text",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1597",
+      "weight": 1.0,
+      "source": "src_main_copy_single_with_optional_sanitize",
+      "target": "src_main_sanitize_message_text",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1755",
+      "weight": 1.0,
+      "source": "src_main_repost_messages_without_forward",
+      "target": "src_main_sanitize_message_text",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1265",
+      "weight": 1.0,
+      "source": "src_main_copy_source_messages",
+      "target": "src_main_should_skip_message_text",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1174",
+      "weight": 1.0,
+      "source": "src_main_copy_source_messages",
+      "target": "src_main_is_cursor_gate_enabled",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1175",
+      "weight": 1.0,
+      "source": "src_main_copy_source_messages",
+      "target": "src_main_is_snapshot_recovery_enabled",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L972",
+      "weight": 1.0,
+      "source": "src_main_load_state",
+      "target": "src_main_is_telegram_state_fallback_enabled",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1090",
+      "weight": 1.0,
+      "source": "src_main_save_state",
+      "target": "src_main_is_telegram_state_fallback_enabled",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1197",
+      "weight": 1.0,
+      "source": "src_main_copy_source_messages",
+      "target": "src_main_fetch_recent_messages",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1598",
+      "weight": 1.0,
+      "source": "src_main_copy_single_with_optional_sanitize",
+      "target": "src_main_has_sendable_media",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1757",
+      "weight": 1.0,
+      "source": "src_main_repost_messages_without_forward",
+      "target": "src_main_has_sendable_media",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1267",
+      "weight": 1.0,
+      "source": "src_main_copy_source_messages",
+      "target": "src_main_is_gif_message",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1593",
+      "weight": 1.0,
+      "source": "src_main_copy_single_with_optional_sanitize",
+      "target": "src_main_is_gif_message",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1748",
+      "weight": 1.0,
+      "source": "src_main_repost_messages_without_forward",
+      "target": "src_main_is_gif_message",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1160",
+      "weight": 1.0,
+      "source": "src_main_copy_source_messages",
+      "target": "src_main_load_state",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1184",
+      "weight": 1.0,
+      "source": "src_main_copy_source_messages",
+      "target": "src_main_save_state",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1236",
+      "weight": 1.0,
+      "source": "src_main_copy_source_messages",
+      "target": "src_main_group_message_ids",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1292",
+      "weight": 1.0,
+      "source": "src_main_copy_source_messages",
+      "target": "src_main_copy_single_with_optional_sanitize",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1446",
+      "weight": 1.0,
+      "source": "src_main_copy_source_messages",
+      "target": "src_main_forward_with_fallback",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1821",
+      "weight": 1.0,
+      "source": "src_main_run_once",
+      "target": "src_main_copy_source_messages",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1624",
+      "weight": 1.0,
+      "source": "src_main_copy_single_with_optional_sanitize",
+      "target": "src_main_forward_with_fallback",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1684",
+      "weight": 1.0,
+      "source": "src_main_forward_with_fallback",
+      "target": "src_main_repost_messages_without_forward",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source_location": "L1830",
+      "weight": 1.0,
+      "source": "src_main_run_once_sync",
+      "target": "src_main_run_once",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_album_flush.py",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_album_flush_py",
+      "target": "tests_test_appwrite_album_flush_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_album_flush.py",
+      "source_location": "L21",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_album_flush_py",
+      "target": "tests_test_appwrite_album_flush_fakeres",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_album_flush.py",
+      "source_location": "L32",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_album_flush_py",
+      "target": "tests_test_appwrite_album_flush_test_album_flush_returns_ok",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_album_flush.py",
+      "source_location": "L33",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_album_flush_test_album_flush_returns_ok",
+      "target": "tests_test_appwrite_album_flush_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_album_flush.py",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_album_flush_fakeres",
+      "target": "tests_test_appwrite_album_flush_fakeres_init",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_album_flush.py",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_album_flush_fakeres",
+      "target": "tests_test_appwrite_album_flush_fakeres_json",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_album_flush.py",
+      "source_location": "L34",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_album_flush_test_album_flush_returns_ok",
+      "target": "tests_test_appwrite_album_flush_fakeres",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L18",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_fakeres",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L37",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_fakesentmessage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L42",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_clear_env",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L55",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_load_settings_requires_session_string",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L67",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_load_settings_with_multiple_sources",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L85",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_group_message_ids_keeps_album_boundaries",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L100",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_sanitize_message_text_preserves_links_by_default",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L106",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_sanitize_message_text_removes_telegram_link_variants_when_enabled",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L118",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_sanitize_message_text_removes_bad_words_and_youtube_when_enabled",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L128",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_should_skip_message_text_blocks_ad_markers",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L138",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_is_gif_message_detects_flag",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L144",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_is_gif_message_detects_mp4_animation_variant",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L160",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_main_returns_error_payload_on_invalid_env",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L172",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_load_state_does_not_use_telegram_fallback_by_default",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L187",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_fetch_recent_messages_respects_cutoff_not_last_seen",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L211",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_copy_source_messages_forwards_each_group",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L249",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_copy_source_messages_skips_ad_messages",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L295",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_copy_source_messages_skips_gif_messages",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L340",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_build_state_payload_compacts_when_too_large",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L364",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_save_run_window_ids_logs_to_backend_and_chunks",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L403",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_log_copier_execution_retries_and_never_raises",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L427",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_appwrite_api_key_prefers_function_env",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L435",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_appwrite_create_document_falls_back_to_tablesdb",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L454",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_appwrite_create_document_retries_on_row_already_exists",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L474",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_appwrite_create_document_prefers_tables_auto_id",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L490",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_appwrite_list_documents_falls_back_to_rows",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L509",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_appwrite_build_url_handles_endpoint_without_v1",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L518",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_appwrite_build_url_handles_endpoint_with_v1",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L527",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_strip_unknown_attribute_from_error",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L537",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_log_copier_execution_retries_after_unknown_attribute",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L576",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_adjust_json_field_by_error_array_type",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L588",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_adjust_json_field_by_error_string_type",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L600",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_adjust_json_field_by_error_array_item_must_be_string",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L612",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_adjust_json_field_by_error_valid_string_phrase",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L624",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_parse_run_snapshot_message",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L634",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_load_recent_run_snapshot_ids_filters_by_time",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L667",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_load_recent_run_snapshot_ids_uses_message_ids_json",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L694",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_load_recent_run_snapshot_ids_uses_message_ids_json_string",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L721",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_copy_source_messages_includes_run_snapshot",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L762",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_load_state_prefers_payload_json",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L783",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_load_state_accepts_payload_json_string",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L804",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_save_state_clears_stale_error_on_successful_patch",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L833",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_save_state_reports_real_db_error_after_retry_exhaustion",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L860",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_save_state_handles_legacy_document_already_exists_conflict",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L894",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_copy_source_messages_merges_snapshot_ids_with_live_fetch",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L945",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_copy_source_messages_skips_ids_at_or_below_last_seen",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L990",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_copy_source_messages_ignores_recovered_id_below_last_seen",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L1040",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_copy_source_messages_self_heals_when_cursor_ahead",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L1085",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_repost_messages_without_forward_preserves_inline_entities",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L1131",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_py",
+      "target": "tests_test_appwrite_webhook_test_repost_messages_without_forward_preserves_entities_without_stripping_text",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L56",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_load_settings_requires_session_string",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L68",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_load_settings_with_multiple_sources",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L86",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_group_message_ids_keeps_album_boundaries",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L101",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_sanitize_message_text_preserves_links_by_default",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L109",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_sanitize_message_text_removes_telegram_link_variants_when_enabled",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L121",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_sanitize_message_text_removes_bad_words_and_youtube_when_enabled",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L129",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_should_skip_message_text_blocks_ad_markers",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L139",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_is_gif_message_detects_flag",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L145",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_is_gif_message_detects_mp4_animation_variant",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L161",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_main_returns_error_payload_on_invalid_env",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L173",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_load_state_does_not_use_telegram_fallback_by_default",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L188",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_fetch_recent_messages_respects_cutoff_not_last_seen",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L212",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_copy_source_messages_forwards_each_group",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L250",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_copy_source_messages_skips_ad_messages",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L296",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_copy_source_messages_skips_gif_messages",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L341",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_build_state_payload_compacts_when_too_large",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L365",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_save_run_window_ids_logs_to_backend_and_chunks",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L404",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_log_copier_execution_retries_and_never_raises",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L428",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_appwrite_api_key_prefers_function_env",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L436",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_appwrite_create_document_falls_back_to_tablesdb",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L455",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_appwrite_create_document_retries_on_row_already_exists",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L475",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_appwrite_create_document_prefers_tables_auto_id",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L491",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_appwrite_list_documents_falls_back_to_rows",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L510",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_appwrite_build_url_handles_endpoint_without_v1",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L519",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_appwrite_build_url_handles_endpoint_with_v1",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L528",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_strip_unknown_attribute_from_error",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L538",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_log_copier_execution_retries_after_unknown_attribute",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L577",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_adjust_json_field_by_error_array_type",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L589",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_adjust_json_field_by_error_string_type",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L601",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_adjust_json_field_by_error_array_item_must_be_string",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L613",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_adjust_json_field_by_error_valid_string_phrase",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L625",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_parse_run_snapshot_message",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L635",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_load_recent_run_snapshot_ids_filters_by_time",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L668",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_load_recent_run_snapshot_ids_uses_message_ids_json",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L695",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_load_recent_run_snapshot_ids_uses_message_ids_json_string",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L722",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_copy_source_messages_includes_run_snapshot",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L763",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_load_state_prefers_payload_json",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L784",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_load_state_accepts_payload_json_string",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L805",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_save_state_clears_stale_error_on_successful_patch",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L834",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_save_state_reports_real_db_error_after_retry_exhaustion",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L861",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_save_state_handles_legacy_document_already_exists_conflict",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L895",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_copy_source_messages_merges_snapshot_ids_with_live_fetch",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L946",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_copy_source_messages_skips_ids_at_or_below_last_seen",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L991",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_copy_source_messages_ignores_recovered_id_below_last_seen",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L1041",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_copy_source_messages_self_heals_when_cursor_ahead",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L1086",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_repost_messages_without_forward_preserves_inline_entities",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L1132",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_repost_messages_without_forward_preserves_entities_without_stripping_text",
+      "target": "tests_test_appwrite_webhook_load_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L27",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_fakeres",
+      "target": "tests_test_appwrite_webhook_fakeres_init",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L31",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_fakeres",
+      "target": "tests_test_appwrite_webhook_fakeres_json",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L163",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_main_returns_error_payload_on_invalid_env",
+      "target": "tests_test_appwrite_webhook_fakeres",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L38",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_fakesentmessage",
+      "target": "tests_test_appwrite_webhook_fakesentmessage_init",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L57",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_load_settings_requires_session_string",
+      "target": "tests_test_appwrite_webhook_clear_env",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L69",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_load_settings_with_multiple_sources",
+      "target": "tests_test_appwrite_webhook_clear_env",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_appwrite_webhook.py",
+      "source_location": "L162",
+      "weight": 1.0,
+      "source": "tests_test_appwrite_webhook_test_main_returns_error_payload_on_invalid_env",
+      "target": "tests_test_appwrite_webhook_clear_env",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_config.py",
+      "source_location": "L21",
+      "weight": 1.0,
+      "source": "tests_test_config_py",
+      "target": "tests_test_config_clear_env",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_config.py",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "tests_test_config_py",
+      "target": "tests_test_config_test_from_env_success",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_config.py",
+      "source_location": "L47",
+      "weight": 1.0,
+      "source": "tests_test_config_py",
+      "target": "tests_test_config_test_from_env_missing_required",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_config.py",
+      "source_location": "L56",
+      "weight": 1.0,
+      "source": "tests_test_config_py",
+      "target": "tests_test_config_test_from_env_invalid_integer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_config.py",
+      "source_location": "L67",
+      "weight": 1.0,
+      "source": "tests_test_config_py",
+      "target": "tests_test_config_test_from_env_multiple_source_channel_ids",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_config.py",
+      "source_location": "L79",
+      "weight": 1.0,
+      "source": "tests_test_config_py",
+      "target": "tests_test_config_test_from_env_invalid_source_channel_ids",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_config.py",
+      "source_location": "L90",
+      "weight": 1.0,
+      "source": "tests_test_config_py",
+      "target": "tests_test_config_test_from_env_missing_source_channel_variables",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_config.py",
+      "source_location": "L27",
+      "weight": 1.0,
+      "source": "tests_test_config_test_from_env_success",
+      "target": "tests_test_config_clear_env",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_config.py",
+      "source_location": "L48",
+      "weight": 1.0,
+      "source": "tests_test_config_test_from_env_missing_required",
+      "target": "tests_test_config_clear_env",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_config.py",
+      "source_location": "L57",
+      "weight": 1.0,
+      "source": "tests_test_config_test_from_env_invalid_integer",
+      "target": "tests_test_config_clear_env",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_config.py",
+      "source_location": "L68",
+      "weight": 1.0,
+      "source": "tests_test_config_test_from_env_multiple_source_channel_ids",
+      "target": "tests_test_config_clear_env",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_config.py",
+      "source_location": "L80",
+      "weight": 1.0,
+      "source": "tests_test_config_test_from_env_invalid_source_channel_ids",
+      "target": "tests_test_config_clear_env",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_config.py",
+      "source_location": "L91",
+      "weight": 1.0,
+      "source": "tests_test_config_test_from_env_missing_source_channel_variables",
+      "target": "tests_test_config_clear_env",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L14",
+      "weight": 1.0,
+      "source": "tests_test_main_py",
+      "target": "tests_test_main_test_copy_single_message_calls_telethon_copy",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L35",
+      "weight": 1.0,
+      "source": "tests_test_main_py",
+      "target": "tests_test_main_test_copy_media_group_calls_telethon_copy_with_list",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L58",
+      "weight": 1.0,
+      "source": "tests_test_main_py",
+      "target": "tests_test_main_test_process_new_message_event_skips_grouped_messages",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L76",
+      "weight": 1.0,
+      "source": "tests_test_main_py",
+      "target": "tests_test_main_test_process_new_message_event_calls_copy_for_regular_message",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L102",
+      "weight": 1.0,
+      "source": "tests_test_main_py",
+      "target": "tests_test_main_test_process_album_event_calls_copy_media_group",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L126",
+      "weight": 1.0,
+      "source": "tests_test_main_py",
+      "target": "tests_test_main_test_process_new_message_event_handles_floodwait",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L151",
+      "weight": 1.0,
+      "source": "tests_test_main_py",
+      "target": "tests_test_main_test_process_new_message_event_end_to_end_in_process",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L173",
+      "weight": 1.0,
+      "source": "tests_test_main_py",
+      "target": "tests_test_main_test_process_album_event_end_to_end_in_process",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L196",
+      "weight": 1.0,
+      "source": "tests_test_main_py",
+      "target": "tests_test_main_test_start_client_bot_mode_uses_bot_token",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L205",
+      "weight": 1.0,
+      "source": "tests_test_main_py",
+      "target": "tests_test_main_test_start_client_non_interactive_without_session_raises",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L219",
+      "weight": 1.0,
+      "source": "tests_test_main_py",
+      "target": "tests_test_main_test_start_client_user_mode_eoferror_is_actionable",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L235",
+      "weight": 1.0,
+      "source": "tests_test_main_py",
+      "target": "tests_test_main_test_start_client_non_interactive_with_authorized_session",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "main.py",
+      "source": "main_run",
+      "target": "config_from_env"
+    },
+    {
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "main.py",
+      "source": "main_run",
+      "target": "webhook_main"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source": "webhook_main",
+      "target": "webhook_copysourcemessages"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "AI.Readme.md",
+      "source": "ai_readme_md",
+      "target": "webhook_main"
+    },
+    {
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "APPWRITE_DEPLOY.md",
+      "source": "appwrite_deploy_md",
+      "target": "webhook_main"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source": "webhook_copysourcemessages",
+      "target": "webhook_loadstate"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source": "webhook_copysourcemessages",
+      "target": "webhook_savestate"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source": "webhook_copysourcemessages",
+      "target": "webhook_forwardwithfallback"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source": "webhook_copysourcemessages",
+      "target": "webhook_sanitizemessagetext"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source": "webhook_copysourcemessages",
+      "target": "webhook_shouldskipmessagetext"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "AGENTS.md",
+      "source": "agents_md",
+      "target": "webhook_copysourcemessages"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "appwrite/functions/webhook/src/main.py",
+      "source": "webhook_forwardwithfallback",
+      "target": "webhook_repostmessageswithoutforward"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "README.md",
+      "source": "readme_md",
+      "target": "agents_md"
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "telegram_checkpoint_system",
+      "label": "Telegram Checkpoint System",
+      "nodes": [
+        "webhook_loadstate",
+        "webhook_savestate",
+        "agents_md"
+      ],
+      "relation": "form",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "appwrite/functions/webhook/src/main.py"
+    },
+    {
+      "id": "message_sanitization_pipeline",
+      "label": "Message Sanitization Pipeline",
+      "nodes": [
+        "webhook_sanitizemessagetext",
+        "webhook_shouldskipmessagetext",
+        "webhook_copysourcemessages"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "appwrite/functions/webhook/src/main.py"
+    }
+  ],
+  "built_at_commit": "f7b8c2f405194e4fbfd5554309907ca180932dee"
+}

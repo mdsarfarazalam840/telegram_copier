@@ -1,5 +1,6 @@
 import asyncio
 import concurrent.futures
+import inspect
 import json
 import os
 import re
@@ -47,10 +48,17 @@ MAX_RECENT_IDS = 2000
 MAX_STATE_PAYLOAD_CHARS = 3800
 MAX_RUN_MESSAGE_CHARS = 3800
 DEFAULT_FUNCTION_NAME = "telegram_copier_run_v1"
-BUILD_VERSION = "2026-03-09-inline-entity-preserve-v6"
+BUILD_VERSION = "2026-10-30-source-coverage-v6"
 DB_LOG_LAST_ERROR = ""
 DB_STATE_LAST_ERROR = ""
 STATE_ROW_ID = "state_global_v1"
+# Appwrite 2.x rejects the legacy `equal("attr",["v"])` query strings and wants
+# JSON query objects. Older servers need the legacy strings. Detect once, then
+# switch format on an "invalid query" error.
+QUERY_FORMAT_JSON = "json"
+QUERY_FORMAT_LEGACY = "legacy"
+QUERY_FORMAT = QUERY_FORMAT_JSON
+MAX_DB_RECENT_IDS = 400
 
 
 def _appwrite_endpoint() -> str:
@@ -243,19 +251,82 @@ def _appwrite_create_document(database_id: str, collection_id: str, data: dict[s
         raise RuntimeError("Failed to create Appwrite row after retries.")
 
 
-def _appwrite_list_documents(database_id: str, collection_id: str, queries: list[str]) -> list[dict[str, Any]]:
-    try:
-        response = _appwrite_request_json(
-            method="GET",
-            path=f"/databases/{database_id}/collections/{collection_id}/documents",
-            queries=queries,
-        )
-    except Exception:
-        response = _appwrite_request_json(
-            method="GET",
-            path=f"/tablesdb/{database_id}/tables/{collection_id}/rows",
-            queries=queries,
-        )
+def _query_equal(attribute: str, *values: Any) -> dict[str, Any]:
+    return {"method": "equal", "attribute": attribute, "values": list(values)}
+
+
+def _query_limit(limit: int) -> dict[str, Any]:
+    return {"method": "limit", "values": [int(limit)]}
+
+
+def _query_order_desc(attribute: str) -> dict[str, Any]:
+    return {"method": "orderDesc", "attribute": attribute}
+
+
+def _legacy_query_string(query: dict[str, Any]) -> str:
+    method = str(query.get("method", ""))
+    attribute = query.get("attribute")
+    values = query.get("values")
+    if method in ("limit", "offset") and isinstance(values, list) and values:
+        return f"{method}({int(values[0])})"
+    if attribute is not None and values is not None:
+        return f'{method}("{attribute}",{json.dumps(values, separators=(",", ":"))})'
+    if attribute is not None:
+        return f'{method}("{attribute}")'
+    if values is not None:
+        return f"{method}({json.dumps(values, separators=(",", ":"))})"
+    return f"{method}()"
+
+
+def _serialize_query(query: dict[str, Any] | str) -> str:
+    if isinstance(query, str):
+        return query
+    if QUERY_FORMAT == QUERY_FORMAT_LEGACY:
+        return _legacy_query_string(query)
+    return json.dumps(query, separators=(",", ":"), ensure_ascii=True)
+
+
+def _is_invalid_query_error(exc: Exception) -> bool:
+    text = str(exc).lower()
+    return "invalid query" in text or "query syntax" in text
+
+
+def _appwrite_list_documents(
+    database_id: str,
+    collection_id: str,
+    queries: list[dict[str, Any] | str],
+) -> list[dict[str, Any]]:
+    global QUERY_FORMAT
+    response: dict[str, Any] | None = None
+    last_exc: Exception | None = None
+    for attempt in (1, 2):
+        serialized = [_serialize_query(query) for query in queries]
+        try:
+            response = _appwrite_request_json(
+                method="GET",
+                path=f"/databases/{database_id}/collections/{collection_id}/documents",
+                queries=serialized,
+            )
+            break
+        except Exception:
+            try:
+                response = _appwrite_request_json(
+                    method="GET",
+                    path=f"/tablesdb/{database_id}/tables/{collection_id}/rows",
+                    queries=serialized,
+                )
+                break
+            except Exception as rows_exc:
+                last_exc = rows_exc
+        if attempt == 1 and last_exc is not None and _is_invalid_query_error(last_exc):
+            # Retry once with the other query dialect.
+            QUERY_FORMAT = QUERY_FORMAT_LEGACY if QUERY_FORMAT == QUERY_FORMAT_JSON else QUERY_FORMAT_JSON
+            continue
+        break
+    if response is None:
+        if last_exc is not None:
+            raise last_exc
+        raise RuntimeError("Appwrite list request failed without response.")
     documents = response.get("documents", [])
     if isinstance(documents, list) and documents:
         return [doc for doc in documents if isinstance(doc, dict)]
@@ -454,7 +525,16 @@ def _compact_state_for_save(state: dict[str, Any]) -> dict[str, Any]:
 
     meta = compact.get("meta")
     if isinstance(meta, dict):
-        meta.pop("source_errors", None)
+        source_errors = meta.get("source_errors")
+        if isinstance(source_errors, dict):
+            # Keep enough detail for the dashboard while preventing one bad source
+            # from making the shared checkpoint exceed Appwrite's attribute limit.
+            compact_errors: dict[str, str] = {}
+            for source_key in sorted(source_errors.keys())[:8]:
+                compact_errors[str(source_key)[:80]] = str(source_errors[source_key])[:160]
+            meta["source_errors"] = compact_errors
+            meta["source_errors_count"] = len(source_errors)
+            meta["source_errors_truncated"] = int(len(source_errors) > len(compact_errors))
 
     sources = compact.get("sources")
     if isinstance(sources, dict):
@@ -466,7 +546,7 @@ def _compact_state_for_save(state: dict[str, Any]) -> dict[str, Any]:
             if isinstance(recent, list):
                 source_entry["recent"] = [
                     int(mid) for mid in recent if isinstance(mid, int)
-                ][-MAX_RECENT_IDS:]
+                ][-MAX_DB_RECENT_IDS:]
 
     return compact
 
@@ -496,6 +576,7 @@ def _build_state_payload(state: dict[str, Any]) -> str:
             "last_run_ts_ms": (
                 (compact.get("meta") or {}).get("last_run_ts_ms") if isinstance(compact.get("meta"), dict) else None
             ),
+            "source_errors_count": len((compact.get("meta") or {}).get("source_errors", {})) if isinstance(compact.get("meta"), dict) and isinstance((compact.get("meta") or {}).get("source_errors"), dict) else 0,
             "state_compacted": 1,
             "compacted_at_ist": _now_ist_iso(),
             "compacted_at_utc": _now_utc_iso(),
@@ -522,15 +603,51 @@ def _build_state_payload_with_limit(state: dict[str, Any], max_chars: int) -> st
     if len(candidate) <= max_chars:
         return candidate
 
+    # Last resort: drop sources from the tail until the payload fits the column.
     source_keys = sorted(minimal_sources.keys())
     while source_keys:
-        current = {k: minimal_sources[k] for k in source_keys}
-        candidate = _state_payload_text({"sources": current, "meta": {"state_compacted": 1, "truncated": 1}})
+        source_keys.pop()
+        current = {key: minimal_sources[key] for key in source_keys}
+        candidate = _state_payload_text(
+            {"sources": current, "meta": {"state_compacted": 1, "truncated": 1}}
+        )
         if len(candidate) <= max_chars:
             return candidate
-        source_keys.pop(0)
 
-    return _state_payload_text({"sources": {}, "meta": {"state_compacted": 1, "truncated": 1}})
+    # Even an empty source map may exceed tiny limits; hard-slice as a final guard.
+    if len(candidate) > max_chars:
+        return candidate[:max_chars]
+    return candidate
+
+
+def _is_unique_constraint_error(exc: Exception) -> bool:
+    text = str(exc).lower()
+    return any(
+        marker in text
+        for marker in (
+            "document_unique_constraint_violation",
+            "row_unique_constraint_violation",
+            "unique attribute constraint",
+            "row_already_exists",
+            "document_already_exists",
+        )
+    )
+
+
+def _find_existing_state_record_id(database_id: str, collection_id: str) -> str | None:
+    """Find the existing global state row after a create/update race."""
+    try:
+        documents = _appwrite_list_documents(
+            database_id=database_id,
+            collection_id=collection_id,
+            queries=[_query_equal("state_key", "global"), _query_limit(1)],
+        )
+    except Exception:
+        return None
+    if not documents:
+        return None
+    record_id = documents[0].get("$id")
+    return str(record_id) if isinstance(record_id, str) and record_id else None
 
 
 def _split_id_tokens(tokens: list[str], max_chars: int) -> list[list[str]]:
@@ -637,9 +754,9 @@ async def _load_recent_run_snapshot_ids(client: Any, lookback_minutes: int) -> d
                 database_id=_log_database_id(),
                 collection_id=_log_collection_id(),
                 queries=[
-                    "orderDesc($createdAt)",
-                    "limit(500)",
-                    f'equal("function_name",["{DEFAULT_FUNCTION_NAME}"])',
+                    _query_order_desc("$createdAt"),
+                    _query_limit(500),
+                    _query_equal("function_name", DEFAULT_FUNCTION_NAME),
                 ],
             )
             for doc in documents:
@@ -754,15 +871,54 @@ def _respond_json(context: Any, payload: dict[str, Any], status_code: int = 200)
                 return payload
 
 
-def _safe_log(context: Any, message: str, is_error: bool = False) -> None:
+def _safe_log(context: Any, message: str, is_error: bool = False, echo_native: bool = True) -> None:
+    logged = False
     logger = getattr(context, "error", None) if is_error else getattr(context, "log", None)
     if callable(logger):
         try:
             logger(message)
+            logged = True
         except Exception:
-            pass
+            logged = False
     # Native logs fallback (shown by Appwrite as "Native logs detected")
-    print(message, flush=True)
+    if echo_native or not logged:
+        print(message, flush=True)
+
+
+def _source_sort_key(source_key: str) -> tuple[int, Any]:
+    try:
+        return (0, int(source_key))
+    except (TypeError, ValueError):
+        return (1, str(source_key))
+
+
+def _format_source_run_line(source_key: str, stats: dict[str, Any]) -> str:
+    window_count = int(stats.get("window_count", 0) or 0)
+    window_min = int(stats.get("window_min_id", 0) or 0)
+    window_max = int(stats.get("window_max_id", 0) or 0)
+    window_text = f"{window_min}-{window_max}({window_count})" if window_count else "none"
+    parts = [
+        f"source={source_key}",
+        f"f={int(stats.get('fetched', 0) or 0)}",
+        f"c={int(stats.get('copied', 0) or 0)}",
+    ]
+    for label, field in (
+        ("g", "gate_skipped"),
+        ("r", "recent_skipped"),
+        ("a", "blocked_ad"),
+        ("i", "blocked_gif"),
+    ):
+        value = int(stats.get(field, 0) or 0)
+        if value:
+            parts.append(f"{label}={value}")
+    parts.append(f"w={window_text}")
+    status = stats.get("status") or "ok"
+    if status != "ok":
+        parts.append(f"status={status}")
+    error = stats.get("error")
+    if error:
+        parts.append(f"error={str(error).replace(chr(10), ' ')[:160]}")
+    return " ".join(parts)
 
 
 def _extract_state(raw_text: str) -> dict[str, Any]:
@@ -865,6 +1021,16 @@ def _is_cursor_gate_enabled() -> bool:
     return os.getenv("ENABLE_CURSOR_GATE", "1").strip().lower() in ("1", "true", "yes", "on")
 
 
+def _is_copy_mode() -> bool:
+    """Repost content as the destination channel's own post (no forward header).
+
+    Default is copy mode. Set COPY_MODE=0 (or COPY_MODE=forward) to restore
+    Telegram forward attribution.
+    """
+    value = os.getenv("COPY_MODE", "copy").strip().lower()
+    return value not in ("0", "false", "no", "off", "forward", "forwarded")
+
+
 def _is_snapshot_recovery_enabled() -> bool:
     return os.getenv("ENABLE_SNAPSHOT_RECOVERY", "0").strip().lower() in ("1", "true", "yes", "on")
 
@@ -873,14 +1039,87 @@ def _is_telegram_state_fallback_enabled() -> bool:
     return os.getenv("ENABLE_TELEGRAM_STATE_FALLBACK", "0").strip().lower() in ("1", "true", "yes", "on")
 
 
+async def _resolve_awaitable(value: Any) -> Any:
+    return await value if inspect.isawaitable(value) else value
+
+
+async def _prime_source_entities(client: Any, source_ids: tuple[int, ...]) -> tuple[dict[int, Any], dict[str, str]]:
+    """Resolve numeric peers after a fresh StringSession starts.
+
+    Telethon cannot build an InputPeerChannel from a bare numeric ID unless the
+    session already has that channel's access hash in its entity cache. Loading
+    dialogs once populates that cache for channels the account can access.
+    """
+    get_input_entity = getattr(client, "get_input_entity", None)
+    if not callable(get_input_entity):
+        return {}, {}
+
+    resolved: dict[int, Any] = {}
+    errors: dict[str, str] = {}
+    unresolved: list[int] = []
+    username_values = [
+        value.strip()
+        for value in os.getenv("SOURCE_CHANNEL_USERNAMES", "").split(",")
+        if value.strip()
+    ]
+    usernames = {
+        source_id: username_values[index]
+        for index, source_id in enumerate(source_ids)
+        if index < len(username_values)
+    }
+    for source_id in source_ids:
+        try:
+            resolved[source_id] = await _resolve_awaitable(get_input_entity(source_id))
+        except Exception:
+            unresolved.append(source_id)
+
+    if unresolved:
+        still_unresolved: list[int] = []
+        for source_id in unresolved:
+            username = usernames.get(source_id)
+            if not username:
+                still_unresolved.append(source_id)
+                continue
+            try:
+                resolved[source_id] = await _resolve_awaitable(get_input_entity(username))
+            except Exception:
+                still_unresolved.append(source_id)
+        unresolved = still_unresolved
+
+    if unresolved:
+        get_dialogs = getattr(client, "get_dialogs", None)
+        if callable(get_dialogs):
+            try:
+                await _resolve_awaitable(get_dialogs(limit=None))
+            except Exception as exc:
+                for source_id in unresolved:
+                    errors[str(source_id)] = (
+                        f"Could not load Telegram dialogs while resolving source {source_id}: "
+                        f"{type(exc).__name__}: {exc}"
+                    )
+                return resolved, errors
+        for source_id in unresolved:
+            try:
+                resolved[source_id] = await _resolve_awaitable(get_input_entity(source_id))
+            except Exception as exc:
+                # Keep the original peer error visible in the run result while
+                # allowing other configured sources to continue.
+                errors[str(source_id)] = (
+                    f"Could not resolve source {source_id}. Ensure the Telegram session can access it "
+                    f"and that it appears in the account's dialogs. Original error: {exc}"
+                )
+    return resolved, errors
+
+
 async def _fetch_recent_messages(
     client: Any,
     source_id: int,
     last_seen_id: int,
     cutoff_dt: datetime,
+    source_entity: Any | None = None,
 ) -> list[Any]:
     messages: list[Any] = []
-    async for msg in client.iter_messages(source_id):
+    async for msg in client.iter_messages(source_entity if source_entity is not None else source_id):
         msg_id = int(getattr(msg, "id", 0))
         if msg_id <= 0:
             continue
@@ -899,13 +1138,25 @@ async def _fetch_recent_messages(
 
 
 def _has_sendable_media(message: Any) -> bool:
+    """True when the message has media that can be resent with send_file."""
+    return _sendable_media_kind(message) is not None
+
+
+def _sendable_media_kind(message: Any) -> str | None:
+    """Return the media kind Telethon send_file can resend, else None.
+
+    Polls, geo points, dice, contacts and games are media too, but send_file
+    rejects them, so those must be reposted as text.
+    """
     media = getattr(message, "media", None)
     if not media:
-        return False
-    # Web page previews are represented as media but cannot be sent via send_file.
-    if media.__class__.__name__ == "MessageMediaWebPage":
-        return False
-    return True
+        return None
+    class_name = media.__class__.__name__
+    if class_name == "MessageMediaPhoto":
+        return "photo"
+    if class_name == "MessageMediaDocument":
+        return "document"
+    return None
 
 
 def _is_gif_message(message: Any) -> bool:
@@ -945,10 +1196,12 @@ async def _load_state(client: Any) -> tuple[dict[str, Any], str | int | None]:
             documents = _appwrite_list_documents(
                 database_id=_state_database_id(),
                 collection_id=_state_collection_id(),
-                queries=['equal("state_key",["global"])', "limit(1)"],
+                queries=[_query_equal("state_key", "global"), _query_limit(1)],
             )
             if documents:
                 document = documents[0]
+                document_id = document.get("$id")
+                row_id = str(document_id) if isinstance(document_id, str) and document_id else None
                 payload_json = document.get("payload_json")
                 if isinstance(payload_json, str):
                     try:
@@ -957,14 +1210,16 @@ async def _load_state(client: Any) -> tuple[dict[str, Any], str | int | None]:
                         payload_json = None
                 if isinstance(payload_json, dict):
                     if isinstance(payload_json.get("sources"), dict):
-                        document_id = document.get("$id")
-                        return payload_json, str(document_id) if isinstance(document_id, str) else None
+                        return payload_json, row_id
                 payload_text = document.get("payload", "")
                 if isinstance(payload_text, str) and payload_text:
                     parsed = _extract_state(payload_text)
                     if parsed:
-                        document_id = document.get("$id")
-                        return parsed, str(document_id) if isinstance(document_id, str) else None
+                        return parsed, row_id
+                # The row exists but holds no usable checkpoint. Return its real
+                # row ID so saves update it instead of creating a duplicate
+                # `state_key=global` row and colliding on the unique index.
+                return {"sources": {}}, row_id
         except Exception:
             # Non-fatal: fallback to legacy Telegram state.
             pass
@@ -999,7 +1254,7 @@ async def _save_state(client: Any, state: dict[str, Any], state_message_id: str 
         database_id = _state_database_id()
         collection_id = _state_collection_id()
         last_db_exc: Exception | None = None
-        state_payload_max_raw = os.getenv("DB_STATE_PAYLOAD_MAX_CHARS", "1800").strip()
+        state_payload_max_raw = os.getenv("DB_STATE_PAYLOAD_MAX_CHARS", "3600").strip()
         try:
             state_payload_max = int(state_payload_max_raw)
         except ValueError:
@@ -1015,7 +1270,9 @@ async def _save_state(client: Any, state: dict[str, Any], state_message_id: str 
             "run_ts_ms": int(time.time() * 1000),
         }
         if not isinstance(state_message_id, str):
-            state_message_id = STATE_ROW_ID
+            # Reuse the existing `state_key=global` row instead of guessing an ID
+            # and colliding with its unique index.
+            state_message_id = _find_existing_state_record_id(database_id, collection_id) or STATE_ROW_ID
         for attempt in (1, 2, 3):
             try:
                 if isinstance(state_message_id, str):
@@ -1045,8 +1302,8 @@ async def _save_state(client: Any, state: dict[str, Any], state_message_id: str 
                                         )
                                     except Exception as create_tables_exc:
                                         create_tables_text = str(create_tables_exc).lower()
-                                        if "already exists" in create_tables_text:
-                                            continue
+                                        if _is_unique_constraint_error(create_tables_exc):
+                                            raise
                                         try:
                                             _appwrite_request_json(
                                                 method="POST",
@@ -1054,8 +1311,8 @@ async def _save_state(client: Any, state: dict[str, Any], state_message_id: str 
                                                 payload={"documentId": state_message_id, "data": payload},
                                             )
                                         except Exception as create_doc_exc:
-                                            if "already exists" in str(create_doc_exc).lower():
-                                                continue
+                                            if _is_unique_constraint_error(create_doc_exc):
+                                                raise
                                             raise
                                 else:
                                     raise
@@ -1069,8 +1326,13 @@ async def _save_state(client: Any, state: dict[str, Any], state_message_id: str 
                 return (str(created_id) if isinstance(created_id, str) else state_message_id), True
             except Exception as exc:
                 last_db_exc = exc
-                if "row_already_exists" in str(exc).lower() or "already exists" in str(exc).lower():
-                    # Row already exists under deterministic state ID; treat as retryable update.
+                if _is_unique_constraint_error(exc):
+                    # Another deployment may have created the unique `global`
+                    # record using a different ID. Re-discover it and patch it
+                    # instead of retrying the same conflicting create.
+                    existing_id = _find_existing_state_record_id(database_id, collection_id)
+                    if existing_id:
+                        state_message_id = existing_id
                     continue
                 if _strip_unknown_attribute_from_error(payload, str(exc)):
                     continue
@@ -1171,6 +1433,11 @@ async def _copy_source_messages(client: Any, settings: AppwriteSettings) -> dict
     state_updated = False
     updated_source_keys: list[str] = []
     source_errors: dict[str, str] = {}
+    resolved_source_entities, entity_errors = await _prime_source_entities(
+        client=client,
+        source_ids=settings.source_channel_ids,
+    )
+    source_errors.update(entity_errors)
     use_cursor_gate = _is_cursor_gate_enabled()
     use_snapshot_recovery = _is_snapshot_recovery_enabled()
     run_window_ids_by_source: dict[str, list[int]] = {str(source_id): [] for source_id in settings.source_channel_ids}
@@ -1185,10 +1452,36 @@ async def _copy_source_messages(client: Any, settings: AppwriteSettings) -> dict
     state_updated = state_updated or did_update
 
     cutoff_dt = datetime.now(timezone.utc) - timedelta(minutes=settings.lookback_minutes)
+    source_run_stats: dict[str, dict[str, Any]] = {}
 
     for source_id in settings.source_channel_ids:
         key = str(source_id)
+        counters_before = (
+            copied_total,
+            fetched_total,
+            skipped_cursor_gate_total,
+            skipped_duplicate_recent_total,
+            skipped_blocked_ad_total,
+            skipped_blocked_gif_total,
+            filtered_links_total,
+        )
+        source_stats: dict[str, Any] = {"status": "ok"}
+        source_run_stats[key] = source_stats
         try:
+            if key in entity_errors:
+                source_stats["status"] = "entity_error"
+                source_stats["error"] = entity_errors.get(key, "")
+                continue
+            source_entity = resolved_source_entities.get(source_id, source_id)
+            if not isinstance(source_entity, int):
+                source_title = getattr(source_entity, "title", None) or getattr(source_entity, "username", None)
+                if source_title:
+                    source_stats["title"] = str(source_title)
+            source_entity_kwargs = (
+                {"source_entity": source_entity}
+                if source_id in resolved_source_entities
+                else {}
+            )
             last_seen_id, recent_ids = _get_source_state(state, key)
             recent_set = set(recent_ids)
             cursor_id = last_seen_id
@@ -1199,6 +1492,7 @@ async def _copy_source_messages(client: Any, settings: AppwriteSettings) -> dict
                 source_id=source_id,
                 last_seen_id=last_seen_id,
                 cutoff_dt=cutoff_dt,
+                **source_entity_kwargs,
             )
             live_message_ids = {int(getattr(msg, "id", 0)) for msg in messages if int(getattr(msg, "id", 0)) > 0}
             snapshot_ids = sorted(
@@ -1209,7 +1503,7 @@ async def _copy_source_messages(client: Any, settings: AppwriteSettings) -> dict
             ][: settings.limit_per_source]
             recovered_id_set: set[int] = set()
             if missing_snapshot_ids:
-                recovered = await client.get_messages(source_id, ids=missing_snapshot_ids)
+                recovered = await client.get_messages(source_entity, ids=missing_snapshot_ids)
                 recovered_list = list(recovered) if isinstance(recovered, (list, tuple)) else [recovered]
                 recovered_valid = [
                     msg
@@ -1294,6 +1588,7 @@ async def _copy_source_messages(client: Any, settings: AppwriteSettings) -> dict
                                         destination_channel_id=settings.destination_channel_id,
                                         source_id=source_id,
                                         message=msg,
+                                        **source_entity_kwargs,
                                     )
                                 )
                                 copied_total += copied_count
@@ -1359,6 +1654,7 @@ async def _copy_source_messages(client: Any, settings: AppwriteSettings) -> dict
                                     "state_message_id": state_message_id,
                                     "run_snapshot_count": len(run_snapshot_ids),
                                     "run_snapshot_message_ids": run_snapshot_ids,
+                                    "source_run_stats": source_run_stats,
                                     "updated_sources": sorted(set(updated_source_keys)),
                                 }
                         continue
@@ -1369,10 +1665,11 @@ async def _copy_source_messages(client: Any, settings: AppwriteSettings) -> dict
                         try:
                             copied_count, skipped_count, filtered_count, processed_ids = (
                                 await _copy_single_with_optional_sanitize(
-                                    client=client,
-                                    destination_channel_id=settings.destination_channel_id,
-                                    source_id=source_id,
-                                    message=single_message,
+                                        client=client,
+                                        destination_channel_id=settings.destination_channel_id,
+                                        source_id=source_id,
+                                        message=single_message,
+                                        **source_entity_kwargs,
                                 )
                             )
                             copied_total += copied_count
@@ -1438,6 +1735,7 @@ async def _copy_source_messages(client: Any, settings: AppwriteSettings) -> dict
                                 "state_message_id": state_message_id,
                                 "run_snapshot_count": len(run_snapshot_ids),
                                 "run_snapshot_message_ids": run_snapshot_ids,
+                                "source_run_stats": source_run_stats,
                                 "updated_sources": sorted(set(updated_source_keys)),
                             }
                         continue
@@ -1449,6 +1747,7 @@ async def _copy_source_messages(client: Any, settings: AppwriteSettings) -> dict
                         source_id=source_id,
                         message_ids=message_ids,
                         as_album=is_album and len(message_ids) > 1,
+                        **source_entity_kwargs,
                     )
                     copied_total += copied_count
                     skipped_invalid_total += skipped_count
@@ -1512,6 +1811,7 @@ async def _copy_source_messages(client: Any, settings: AppwriteSettings) -> dict
                         "state_message_id": state_message_id,
                         "run_snapshot_count": len(run_snapshot_ids),
                         "run_snapshot_message_ids": run_snapshot_ids,
+                        "source_run_stats": source_run_stats,
                         "updated_sources": sorted(set(updated_source_keys)),
                     }
 
@@ -1520,8 +1820,25 @@ async def _copy_source_messages(client: Any, settings: AppwriteSettings) -> dict
                 updated_source_keys.append(key)
                 changed = True
         except Exception as source_exc:
-            source_errors[key] = f"{type(source_exc).__name__}: {source_exc}"
+            source_stats["status"] = "error"
+            source_stats["error"] = f"{type(source_exc).__name__}: {source_exc}"
+            source_errors[key] = source_stats["error"]
             continue
+        finally:
+            source_stats["fetched"] = fetched_total - counters_before[1]
+            source_stats["copied"] = copied_total - counters_before[0]
+            source_stats["gate_skipped"] = skipped_cursor_gate_total - counters_before[2]
+            source_stats["recent_skipped"] = skipped_duplicate_recent_total - counters_before[3]
+            source_stats["blocked_ad"] = skipped_blocked_ad_total - counters_before[4]
+            source_stats["blocked_gif"] = skipped_blocked_gif_total - counters_before[5]
+            source_stats["filtered_links"] = filtered_links_total - counters_before[6]
+            window_ids = run_window_ids_by_source.get(key, [])
+            source_stats["window_count"] = len(window_ids)
+            source_stats["window_min_id"] = min(window_ids) if window_ids else 0
+            source_stats["window_max_id"] = max(window_ids) if window_ids else 0
+            source_entry = (state.get("sources") or {}).get(key)
+            if isinstance(source_entry, dict):
+                source_stats["cursor_id"] = int(source_entry.get("last_id", 0) or 0)
 
     if changed:
         run_status = "completed_with_errors" if source_errors else "completed"
@@ -1575,6 +1892,7 @@ async def _copy_source_messages(client: Any, settings: AppwriteSettings) -> dict
         **_appwrite_env_diagnostics(),
         "run_snapshot_count": len(run_snapshot_ids),
         "run_snapshot_message_ids": run_snapshot_ids,
+        "source_run_stats": source_run_stats,
         "updated_sources": sorted(set(updated_source_keys)),
     }
 
@@ -1584,6 +1902,7 @@ async def _copy_single_with_optional_sanitize(
     destination_channel_id: int,
     source_id: int,
     message: Any,
+    source_entity: Any | None = None,
 ) -> tuple[int, int, int, tuple[int, ...]]:
     from telethon.errors.rpcerrorlist import FloodWaitError
 
@@ -1595,7 +1914,7 @@ async def _copy_single_with_optional_sanitize(
 
     original_text = getattr(message, "message", None) or ""
     cleaned_text = _sanitize_message_text(original_text)
-    has_media = _has_sendable_media(message)
+    has_media = _sendable_media_kind(message) is not None
     is_sanitized = cleaned_text != original_text
 
     if is_sanitized:
@@ -1625,6 +1944,7 @@ async def _copy_single_with_optional_sanitize(
         client=client,
         destination_channel_id=destination_channel_id,
         source_id=source_id,
+        source_entity=source_entity,
         message_ids=[message_id],
         as_album=False,
     )
@@ -1637,11 +1957,22 @@ async def _forward_with_fallback(
     source_id: int,
     message_ids: list[int],
     as_album: bool,
+    source_entity: Any | None = None,
 ) -> tuple[int, int, tuple[int, ...]]:
     from telethon.errors import RPCError
     from telethon.errors.rpcerrorlist import ChatForwardsRestrictedError
     from telethon.errors.rpcerrorlist import FloodWaitError
     from telethon.errors.rpcerrorlist import MessageIdInvalidError
+
+    if _is_copy_mode():
+        # Own-name repost: the destination post carries no "Forwarded from" header.
+        return await _repost_messages_without_forward(
+            client=client,
+            destination_channel_id=destination_channel_id,
+            source_id=source_id,
+            source_entity=source_entity,
+            message_ids=message_ids,
+        )
 
     def is_forwards_restricted(exc: Exception) -> bool:
         if isinstance(exc, ChatForwardsRestrictedError):
@@ -1667,10 +1998,11 @@ async def _forward_with_fallback(
         return False
 
     try:
+        forward_source = source_entity if source_entity is not None else source_id
         await client.forward_messages(
             entity=destination_channel_id,
             messages=message_ids if as_album else message_ids[0],
-            from_peer=source_id,
+            from_peer=forward_source,
             as_album=as_album if as_album else None,
             drop_author=True,
             drop_media_captions=False,
@@ -1685,6 +2017,7 @@ async def _forward_with_fallback(
                 client=client,
                 destination_channel_id=destination_channel_id,
                 source_id=source_id,
+                source_entity=source_entity,
                 message_ids=message_ids,
             )
         if not is_skippable_forward_error(exc):
@@ -1700,7 +2033,7 @@ async def _forward_with_fallback(
                     await client.forward_messages(
                         entity=destination_channel_id,
                         messages=mid,
-                        from_peer=source_id,
+                        from_peer=forward_source,
                         drop_author=True,
                         drop_media_captions=False,
                     )
@@ -1728,18 +2061,43 @@ async def _repost_messages_without_forward(
     destination_channel_id: int,
     source_id: int,
     message_ids: list[int],
+    source_entity: Any | None = None,
 ) -> tuple[int, int, tuple[int, ...]]:
     from telethon.errors.rpcerrorlist import FloodWaitError
 
-    fetched = await client.get_messages(source_id, ids=message_ids)
+    fetched = await client.get_messages(source_entity if source_entity is not None else source_id, ids=message_ids)
     messages = list(fetched) if isinstance(fetched, (list, tuple)) else [fetched]
     by_id = {int(getattr(msg, "id", 0)): msg for msg in messages if getattr(msg, "id", None)}
 
+    ordered_ids = [int(mid) for mid in message_ids]
     copied = 0
     skipped = 0
     processed: list[int] = []
 
-    for mid in message_ids:
+    # Album path: keep multi-media posts grouped instead of splitting them into
+    # separate destination messages.
+    if len(ordered_ids) > 1 and all(
+        by_id.get(mid) is not None and _sendable_media_kind(by_id[mid]) for mid in ordered_ids
+    ):
+        album_messages = [by_id[mid] for mid in ordered_ids]
+        album_captions = [
+            _sanitize_message_text(getattr(message, "message", None) or "") or None
+            for message in album_messages
+        ]
+        try:
+            await client.send_file(
+                entity=destination_channel_id,
+                file=[message.media for message in album_messages],
+                caption=album_captions,
+            )
+            return len(ordered_ids), 0, tuple(ordered_ids)
+        except FloodWaitError as inner_exc:
+            raise FloodHalt(seconds=int(inner_exc.seconds), processed_ids=tuple(), copied=0, skipped=0) from inner_exc
+        except Exception:
+            # Degrade to per-message sends so one bad item cannot drop the album.
+            pass
+
+    for mid in ordered_ids:
         msg = by_id.get(int(mid))
         if msg is None:
             skipped += 1
@@ -1754,9 +2112,9 @@ async def _repost_messages_without_forward(
         text = raw_text
         cleaned_text = _sanitize_message_text(text)
         entities = getattr(msg, "entities", None) if cleaned_text == text else None
-        has_media = _has_sendable_media(msg)
+        media_kind = _sendable_media_kind(msg)
         try:
-            if has_media:
+            if media_kind:
                 send_file_kwargs = {
                     "entity": destination_channel_id,
                     "file": msg.media,
@@ -1769,11 +2127,11 @@ async def _repost_messages_without_forward(
                 processed.append(int(mid))
                 continue
 
+            # Non-sendable media (poll, geo, dice, contact) falls back to its text.
             if cleaned_text:
                 send_message_kwargs = {
                     "entity": destination_channel_id,
                     "message": cleaned_text,
-                    "link_preview": False,
                 }
                 if entities:
                     send_message_kwargs["formatting_entities"] = entities
@@ -1879,8 +2237,51 @@ def main(context: Any):
             _safe_log(context, f"DB log write issue: {result.get('db_log_last_error')}", is_error=True)
         if result.get("db_state_last_error"):
             _safe_log(context, f"DB state write issue: {result.get('db_state_last_error')}", is_error=True)
+        source_stats_map = result.get("source_run_stats") or {}
+        total_sources = len(settings.source_channel_ids)
+        with_messages = sum(
+            1 for item in source_stats_map.values() if int(item.get("fetched", 0) or 0) > 0
+        )
+        copied_sources = [
+            key for key, item in source_stats_map.items() if int(item.get("copied", 0) or 0) > 0
+        ]
+        entity_error_sources = [
+            key for key, item in source_stats_map.items() if item.get("status") == "entity_error"
+        ]
+        failed_sources = [
+            key for key, item in source_stats_map.items() if item.get("status") == "error"
+        ]
+        _safe_log(
+            context,
+            "Source coverage: "
+            f"checked={len(source_stats_map)}/{total_sources}, "
+            f"with_messages_in_window={with_messages}, "
+            f"copied_sources={len(copied_sources)}, "
+            f"entity_errors={len(entity_error_sources)}, "
+            f"source_errors={len(failed_sources)}",
+        )
+        if copied_sources:
+            _safe_log(context, f"Copied sources: {','.join(sorted(copied_sources, key=_source_sort_key))}")
+        if entity_error_sources:
+            _safe_log(
+                context,
+                "Entity error sources: "
+                + ",".join(sorted(entity_error_sources, key=_source_sort_key)),
+                is_error=True,
+            )
         if result.get("source_errors"):
             _safe_log(context, f"Source errors: {json.dumps(result.get('source_errors'), ensure_ascii=True)}", is_error=True)
+        _safe_log(
+            context,
+            "Per-source legend: f=fetched in lookback window c=copied g=cursor gate skip "
+            "r=recent dup skip a=ad block i=gif block w=id window(min-max); zero fields omitted",
+        )
+        for source_key in sorted(source_stats_map.keys(), key=_source_sort_key):
+            _safe_log(
+                context,
+                _format_source_run_line(source_key, source_stats_map[source_key]),
+                echo_native=False,
+            )
         return _respond_json(context, {"ok": True, **result})
     except Exception as exc:
         _safe_log(context, f"Sync failed: {type(exc).__name__}: {exc}", is_error=True)

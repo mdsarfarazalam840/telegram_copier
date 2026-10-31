@@ -33,8 +33,11 @@ In Appwrite Cloud -> Functions -> `Telegram Copier User Sync` -> Variables, set:
 - `SESSION_STRING`
 - `DESTINATION_CHANNEL_ID`
 - `SOURCE_CHANNEL_ID` or `SOURCE_CHANNEL_IDS`
+- `SOURCE_CHANNEL_USERNAMES` (optional, comma-separated usernames in the same order as `SOURCE_CHANNEL_IDS`; useful when a public source is not present in the session's dialog/entity cache)
 - `LIMIT_PER_SOURCE` (optional, default `50`)
-- `LOOKBACK_MINUTES` (optional, default `60`)
+- `LOOKBACK_MINUTES` (optional, default `60`) — for an hourly schedule use `120` so a delayed run still covers a full hour
+- `ENABLE_CURSOR_GATE` (recommended `1` with `APPWRITE_DATABASE_ID`; skips messages at or below the stored per-source cursor so the same window is not re-copied every hour)
+- `COPY_MODE` (optional, default `copy`; reposts as your own post with no forward attribution. Set `0` or `forward` to forward instead)
 - `APPWRITE_DATABASE_ID` (**required** for persistent logs/state)
 - `APPWRITE_LOGS_COLLECTION_ID` (recommended: `telegram_copier_logs`)   
 - `APPWRITE_STATE_COLLECTION_ID` (recommended: `telegram_copier_state`)  
@@ -95,10 +98,13 @@ appwrite login
 appwrite push functions
 ```
 
+After applying the dashboard diagnostics update, redeploy `telegram-copier-webhook` so future `completed_with_errors` checkpoints retain a bounded `meta.source_errors` summary in the state record. Existing checkpoints cannot regain details that were previously removed during compaction.
+
 ## 6. Verify Scheduled Execution
 
 - In Appwrite Cloud, confirm function `Telegram Copier User Sync` is enabled.
-- Schedule in `appwrite.json` is currently `*/10 * * * *` (every 10 minutes).
+- Schedule in `appwrite.json` is `"interval": 60` (hourly). Appwrite Cloud plans with the free/low tier reject anything shorter with `Your current plan allows intervals of 60 minutes or longer`.
+- `LOOKBACK_MINUTES=120` gives one hour of overlap, so a delayed or failed run still covers the missed hour.
 - Open function logs and verify successful runs.
 
 ## 7. Validate Behavior
@@ -106,7 +112,9 @@ appwrite push functions
 - Post messages in source channel(s).
 - Confirm they appear in destination channel with no forward attribution.
 - Check execution logs for copied counts.
-- Check `telegram_copier_logs` documents are being inserted each run.
+- Read the `Source coverage:` line: `checked=74/74` proves every configured source was visited, `with_messages_in_window` counts sources that had messages in the lookback window, and `copied_sources` counts sources that produced at least one destination post.
+- Read the per-source lines (`source=-100... f= c= g= r= a= i= w=min-max(n)`) to see, channel by channel, how many messages the lookback window held (`f`), how many were copied (`c`), how many the cursor gate skipped (`g`), how many recent-duplicate filters skipped (`r`), and how many ad/GIF blocks fired (`a`/`i`). Zero-valued fields are omitted, and a legend line precedes the list.
+- Check `telegram_copier_logs` documents are being inserted each run. Each run writes one row per source window (`source_id`, `message_ids_json`), so the DB is a second record of per-channel coverage.
 - Check `telegram_copier_state` has a `state_key=global` document and updates every run.
 - Check JSON fields are populated when present:
   - `telegram_copier_logs.message_ids_json`
@@ -122,6 +130,10 @@ appwrite push functions
   - Verify `APPWRITE_DATABASE_ID` and collection IDs.
   - Verify function scopes include `databases.read` and `databases.write`.
   - Check function variables are set on the active deployment.
+- DB write fails with `409 Conflict` / `row_unique_constraint_violation` on `state_key=global`:
+  - Appwrite 2.x rejects legacy query strings (`equal("state_key",["global"])`, `limit(1)`) with `Invalid query: Syntax error`, so the state row was never found and every save tried to insert a duplicate.
+  - The function now sends JSON query objects (`{"method":"equal","attribute":"state_key","values":["global"]}`) and falls back to the legacy dialect only if the server rejects them.
+  - When a row exists but carries no usable checkpoint, the loader still returns its real `$id`, so saves PATCH the existing row instead of inserting.
 - DB write fails with `Unknown attribute`:
   - Add missing fields in Appwrite table schema exactly as named:
     - `message_ids_json` in `telegram_copier_logs`

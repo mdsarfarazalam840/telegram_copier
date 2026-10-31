@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import asyncio
+import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
@@ -46,6 +47,7 @@ def clear_env(monkeypatch: pytest.MonkeyPatch) -> None:
         "SESSION_STRING",
         "SOURCE_CHANNEL_ID",
         "SOURCE_CHANNEL_IDS",
+        "SOURCE_CHANNEL_USERNAMES",
         "DESTINATION_CHANNEL_ID",
         "LIMIT_PER_SOURCE",
     ):
@@ -359,6 +361,8 @@ def test_build_state_payload_compacts_when_too_large() -> None:
     parsed = module._extract_state(payload)
     assert parsed["sources"]["-1001"]["last_id"] == 123
     assert len(parsed["sources"]["-1001"]["recent"]) <= module.MAX_RECENT_IDS
+    assert "source_errors" in parsed["meta"]
+    assert len(parsed["meta"]["source_errors"]) <= 8
 
 
 def test_save_run_window_ids_logs_to_backend_and_chunks(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -891,6 +895,122 @@ def test_save_state_handles_legacy_document_already_exists_conflict(monkeypatch:
     assert module.DB_STATE_LAST_ERROR == ""
 
 
+def test_save_state_recovers_from_unique_state_key_conflict(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+    monkeypatch.setenv("APPWRITE_ENDPOINT", "https://example.test")
+    monkeypatch.setenv("APPWRITE_API_KEY", "key")
+    monkeypatch.setenv("APPWRITE_DATABASE_ID", "db")
+    monkeypatch.setenv("APPWRITE_STATE_COLLECTION_ID", "state")
+    calls: list[tuple[str, str]] = []
+
+    def fake_request_json(method, path, payload=None, queries=None):  # noqa: ANN001
+        calls.append((method, path))
+        if len(calls) == 1:
+            raise RuntimeError("HTTP 404 Not Found")
+        if len(calls) == 2:
+            raise RuntimeError("HTTP 404 Not Found")
+        if len(calls) == 3:
+            raise RuntimeError(
+                'HTTP 409 Conflict: {"type":"document_unique_constraint_violation",'
+                '"message":"Document violates a unique attribute constraint."}'
+            )
+        assert method == "PATCH"
+        assert path.endswith("/rows/existing_state")
+        return {"$id": "existing_state"}
+
+    monkeypatch.setattr(module, "_appwrite_request_json", fake_request_json)
+    monkeypatch.setattr(
+        module,
+        "_appwrite_list_documents",
+        lambda database_id, collection_id, queries: [{"$id": "existing_state", "state_key": "global"}],
+    )
+
+    state_id, did_update = asyncio.run(
+        module._save_state(
+            client=SimpleNamespace(),
+            state={"sources": {"-1001": {"last_id": 1, "recent": []}}},
+            state_message_id="state_global_v1",
+        )
+    )
+
+    assert state_id == "existing_state"
+    assert did_update is True
+    assert module.DB_STATE_LAST_ERROR == ""
+
+
+def test_prime_source_entities_loads_dialogs_for_fresh_session() -> None:
+    module = load_module()
+    calls = {"input": 0, "dialogs": 0}
+
+    async def get_input_entity(source_id):  # noqa: ANN001
+        calls["input"] += 1
+        if calls["input"] == 1:
+            raise ValueError("Could not find input entity")
+        return f"input-peer:{source_id}"
+
+    async def get_dialogs(limit=None):  # noqa: ANN001
+        calls["dialogs"] += 1
+        assert limit is None
+        return []
+
+    resolved, errors = asyncio.run(
+        module._prime_source_entities(
+            SimpleNamespace(get_input_entity=get_input_entity, get_dialogs=get_dialogs),
+            (-1001,),
+        )
+    )
+
+    assert resolved == {-1001: "input-peer:-1001"}
+    assert errors == {}
+    assert calls["dialogs"] == 1
+
+
+def test_prime_source_entities_reports_inaccessible_source_without_aborting_others() -> None:
+    module = load_module()
+
+    async def get_input_entity(source_id):  # noqa: ANN001
+        if source_id == -1001:
+            raise ValueError("missing entity")
+        return f"input-peer:{source_id}"
+
+    async def get_dialogs(limit=None):  # noqa: ANN001
+        return []
+
+    resolved, errors = asyncio.run(
+        module._prime_source_entities(
+            SimpleNamespace(get_input_entity=get_input_entity, get_dialogs=get_dialogs),
+            (-1001, -1002),
+        )
+    )
+
+    assert resolved == {-1002: "input-peer:-1002"}
+    assert "-1001" in errors
+    assert "dialogs" in errors["-1001"] or "resolve source" in errors["-1001"]
+
+
+def test_prime_source_entities_can_use_ordered_public_usernames(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+    monkeypatch.setenv("SOURCE_CHANNEL_USERNAMES", "public_source")
+
+    async def get_input_entity(value):  # noqa: ANN001
+        if value == -1001:
+            raise ValueError("missing numeric entity")
+        return f"input-peer:{value}"
+
+    async def get_dialogs(limit=None):  # noqa: ANN001
+        raise AssertionError("username resolution should avoid loading all dialogs")
+
+    resolved, errors = asyncio.run(
+        module._prime_source_entities(
+            SimpleNamespace(get_input_entity=get_input_entity, get_dialogs=get_dialogs),
+            (-1001,),
+        )
+    )
+
+    assert resolved == {-1001: "input-peer:public_source"}
+    assert errors == {}
+
+
 def test_copy_source_messages_merges_snapshot_ids_with_live_fetch(monkeypatch: pytest.MonkeyPatch) -> None:
     module = load_module()
     monkeypatch.setenv("ENABLE_SNAPSHOT_RECOVERY", "1")
@@ -1170,3 +1290,406 @@ def test_repost_messages_without_forward_preserves_entities_without_stripping_te
     assert client.sent_kwargs is not None
     assert client.sent_kwargs["message"] == "GkyFilehost  "
     assert client.sent_kwargs["formatting_entities"] == hyperlink_entities
+
+
+def test_forward_with_fallback_copies_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+    monkeypatch.delenv("COPY_MODE", raising=False)
+
+    class FakeClient:
+        def __init__(self) -> None:
+            self.forward_called = False
+            self.sent_kwargs = None
+
+        async def forward_messages(self, **kwargs):  # noqa: ANN003
+            self.forward_called = True
+            raise AssertionError("forward_messages must not be used in copy mode")
+
+        async def get_messages(self, source_id, ids):  # noqa: ANN001
+            return [SimpleNamespace(id=5, message="hello", entities=None, media=None, gif=False)]
+
+        async def send_message(self, **kwargs):  # noqa: ANN003
+            self.sent_kwargs = kwargs
+            return FakeSentMessage(7)
+
+    client = FakeClient()
+    copied, skipped, processed = asyncio.run(
+        module._forward_with_fallback(
+            client=client,
+            destination_channel_id=-2002,
+            source_id=-1001,
+            message_ids=[5],
+            as_album=False,
+        )
+    )
+
+    assert client.forward_called is False
+    assert client.sent_kwargs is not None
+    assert client.sent_kwargs["message"] == "hello"
+    assert (copied, skipped, processed) == (1, 0, (5,))
+
+
+def test_forward_with_fallback_forwards_when_copy_mode_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+    monkeypatch.setenv("COPY_MODE", "forward")
+
+    class FakeClient:
+        def __init__(self) -> None:
+            self.forward_kwargs = None
+
+        async def forward_messages(self, **kwargs):  # noqa: ANN003
+            self.forward_kwargs = kwargs
+            return SimpleNamespace(id=9)
+
+        async def get_messages(self, source_id, ids):  # noqa: ANN001
+            raise AssertionError("copy path must not run when COPY_MODE=forward")
+
+    client = FakeClient()
+    result = asyncio.run(
+        module._forward_with_fallback(
+            client=client,
+            destination_channel_id=-2002,
+            source_id=-1001,
+            message_ids=[5],
+            as_album=False,
+        )
+    )
+
+    assert client.forward_kwargs is not None
+    assert client.forward_kwargs["from_peer"] == -1001
+    assert result == (1, 0, (5,))
+
+
+def test_repost_messages_without_forward_sends_album_as_group(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+    monkeypatch.delenv("COPY_MODE", raising=False)
+
+    class MessageMediaPhoto:
+        pass
+
+    class FakeClient:
+        def __init__(self) -> None:
+            self.send_file_kwargs = None
+            self.send_message_calls = 0
+
+        async def get_messages(self, source_id, ids):  # noqa: ANN001
+            return [
+                SimpleNamespace(id=11, message="first", entities=None, media=MessageMediaPhoto(), gif=False),
+                SimpleNamespace(id=12, message="", entities=None, media=MessageMediaPhoto(), gif=False),
+            ]
+
+        async def send_file(self, **kwargs):  # noqa: ANN003
+            self.send_file_kwargs = kwargs
+            return FakeSentMessage(21)
+
+        async def send_message(self, **kwargs):  # noqa: ANN003
+            self.send_message_calls += 1
+            return FakeSentMessage(22)
+
+    client = FakeClient()
+    copied, skipped, processed = asyncio.run(
+        module._repost_messages_without_forward(
+            client=client,
+            destination_channel_id=-2002,
+            source_id=-1001,
+            message_ids=[11, 12],
+        )
+    )
+
+    assert client.send_message_calls == 0
+    assert client.send_file_kwargs is not None
+    assert len(client.send_file_kwargs["file"]) == 2
+    assert client.send_file_kwargs["caption"] == ["first", None]
+    assert (copied, skipped, processed) == (2, 0, (11, 12))
+
+
+def test_repost_messages_without_forward_sends_unsupported_media_as_text(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = load_module()
+    monkeypatch.delenv("COPY_MODE", raising=False)
+
+    class MessageMediaPoll:
+        pass
+
+    class FakeClient:
+        def __init__(self) -> None:
+            self.send_file_calls = 0
+            self.send_message_kwargs = None
+
+        async def get_messages(self, source_id, ids):  # noqa: ANN001
+            return [
+                SimpleNamespace(
+                    id=31,
+                    message="vote now",
+                    entities=None,
+                    media=MessageMediaPoll(),
+                    gif=False,
+                )
+            ]
+
+        async def send_file(self, **kwargs):  # noqa: ANN003
+            self.send_file_calls += 1
+            raise AssertionError("send_file rejects poll media")
+
+        async def send_message(self, **kwargs):  # noqa: ANN003
+            self.send_message_kwargs = kwargs
+            return FakeSentMessage(32)
+
+    client = FakeClient()
+    copied, skipped, processed = asyncio.run(
+        module._repost_messages_without_forward(
+            client=client,
+            destination_channel_id=-2002,
+            source_id=-1001,
+            message_ids=[31],
+        )
+    )
+
+    assert client.send_file_calls == 0
+    assert client.send_message_kwargs is not None
+    assert client.send_message_kwargs["message"] == "vote now"
+    assert (copied, skipped, processed) == (1, 0, (31,))
+
+
+def test_serialize_query_uses_json_for_appwrite_2() -> None:
+    module = load_module()
+
+    assert module.QUERY_FORMAT == module.QUERY_FORMAT_JSON
+    assert module._serialize_query(module._query_equal("state_key", "global")) == (
+        '{"method":"equal","attribute":"state_key","values":["global"]}'
+    )
+    assert module._serialize_query(module._query_limit(1)) == '{"method":"limit","values":[1]}'
+    assert module._serialize_query(module._query_order_desc("$createdAt")) == (
+        '{"method":"orderDesc","attribute":"$createdAt"}'
+    )
+
+
+def test_legacy_query_string_round_trip() -> None:
+    module = load_module()
+
+    assert module._legacy_query_string(module._query_equal("state_key", "global")) == (
+        'equal("state_key",["global"])'
+    )
+    assert module._legacy_query_string(module._query_limit(1)) == "limit(1)"
+    assert module._legacy_query_string(module._query_order_desc("$createdAt")) == 'orderDesc("$createdAt")'
+
+
+def test_appwrite_list_documents_retries_with_legacy_queries(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+    seen_queries: list[str] = []
+
+    def fake_request_json(method, path, payload=None, queries=None):  # noqa: ANN001
+        if path.startswith("/databases/"):
+            raise RuntimeError("legacy endpoint not available")
+        seen_queries.append(queries[0])
+        if queries[0].startswith("{"):
+            raise RuntimeError('HTTP 400 Bad Request: {"message":"Invalid query: Syntax error"}')
+        return {"rows": [{"$id": "row_1"}]}
+
+    monkeypatch.setattr(module, "_appwrite_request_json", fake_request_json)
+
+    rows = module._appwrite_list_documents(
+        database_id="db1",
+        collection_id="state",
+        queries=[module._query_equal("state_key", "global")],
+    )
+
+    assert rows == [{"$id": "row_1"}]
+    assert module.QUERY_FORMAT == module.QUERY_FORMAT_LEGACY
+    assert seen_queries == [
+        '{"method":"equal","attribute":"state_key","values":["global"]}',
+        'equal("state_key",["global"])',
+    ]
+
+
+def test_load_state_returns_existing_row_id_for_compacted_payload(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+    monkeypatch.setenv("APPWRITE_ENDPOINT", "https://example.test")
+    monkeypatch.setenv("APPWRITE_API_KEY", "key")
+    monkeypatch.setenv("APPWRITE_DATABASE_ID", "db")
+    monkeypatch.setenv("APPWRITE_STATE_COLLECTION_ID", "state")
+
+    payload = module.STATE_MARKER + json.dumps(
+        {"sources": {"-1001": {"last_id": 42}}, "meta": {"state_compacted": 1}},
+        separators=(",", ":"),
+    )
+
+    monkeypatch.setattr(
+        module,
+        "_appwrite_list_documents",
+        lambda database_id, collection_id, queries: [
+            {"$id": "69ac4bd17494ba894b83", "state_key": "global", "payload": payload}
+        ],
+    )
+
+    state, state_id = asyncio.run(module._load_state(client=SimpleNamespace()))
+
+    assert state_id == "69ac4bd17494ba894b83"
+    assert state["sources"]["-1001"]["last_id"] == 42
+
+
+def test_load_state_keeps_row_id_when_payload_is_unusable(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+    monkeypatch.setenv("APPWRITE_ENDPOINT", "https://example.test")
+    monkeypatch.setenv("APPWRITE_API_KEY", "key")
+    monkeypatch.setenv("APPWRITE_DATABASE_ID", "db")
+    monkeypatch.setenv("APPWRITE_STATE_COLLECTION_ID", "state")
+
+    monkeypatch.setattr(
+        module,
+        "_appwrite_list_documents",
+        lambda database_id, collection_id, queries: [{"$id": "row_abc", "state_key": "global"}],
+    )
+
+    state, state_id = asyncio.run(module._load_state(client=SimpleNamespace()))
+
+    assert state == {"sources": {}}
+    assert state_id == "row_abc"
+
+
+def test_save_state_reuses_existing_global_row_instead_of_creating(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+    monkeypatch.setenv("APPWRITE_ENDPOINT", "https://example.test")
+    monkeypatch.setenv("APPWRITE_API_KEY", "key")
+    monkeypatch.setenv("APPWRITE_DATABASE_ID", "db")
+    monkeypatch.setenv("APPWRITE_STATE_COLLECTION_ID", "state")
+
+    patched_paths: list[str] = []
+
+    def fake_request_json(method, path, payload=None, queries=None):  # noqa: ANN001
+        assert method == "PATCH", "must never create a duplicate global row"
+        patched_paths.append(path)
+        return {"$id": "existing_row"}
+
+    monkeypatch.setattr(module, "_appwrite_request_json", fake_request_json)
+    monkeypatch.setattr(
+        module,
+        "_find_existing_state_record_id",
+        lambda database_id, collection_id: "existing_row",
+    )
+
+    state_id, did_update = asyncio.run(
+        module._save_state(
+            client=SimpleNamespace(),
+            state={"sources": {"-1001": {"last_id": 7, "recent": [7]}}},
+            state_message_id=None,
+        )
+    )
+
+    assert did_update is True
+    assert state_id == "existing_row"
+    assert patched_paths == ["/tablesdb/db/tables/state/rows/existing_row"]
+
+
+
+
+def test_format_source_run_line_reports_every_counter() -> None:
+    module = load_module()
+
+    line = module._format_source_run_line(
+        "-1001234567890",
+        {
+            "status": "ok",
+            "fetched": 12,
+            "copied": 3,
+            "gate_skipped": 7,
+            "recent_skipped": 1,
+            "blocked_ad": 1,
+            "blocked_gif": 0,
+            "filtered_links": 2,
+            "window_count": 12,
+            "window_min_id": 100,
+            "window_max_id": 111,
+            "cursor_id": 111,
+        },
+    )
+
+    assert line.startswith("source=-1001234567890 f=12 c=3 g=7 r=1")
+    assert "a=1" in line
+    assert "i=0" not in line
+    assert "w=100-111(12)" in line
+    assert "cursor=" not in line
+    assert "status=" not in line
+    assert "\n" not in line
+
+
+def test_format_source_run_line_includes_error_status() -> None:
+    module = load_module()
+
+    line = module._format_source_run_line(
+        "-1001",
+        {"status": "error", "error": "AuthKeyError: revoked"},
+    )
+
+    assert "status=error" in line
+    assert "error=AuthKeyError: revoked" in line
+
+
+def test_format_source_run_line_handles_empty_source() -> None:
+    module = load_module()
+
+    line = module._format_source_run_line("-1001", {"status": "ok"})
+
+    assert "f=0" in line
+    assert "w=none" in line
+    assert "status=" not in line
+
+
+def test_per_source_log_line_budget_fits_appwrite_log_limit() -> None:
+    module = load_module()
+
+    total = 0
+    for index in range(74):
+        line = module._format_source_run_line(
+            f"-100{index:010d}",
+            {
+                "fetched": 99,
+                "copied": 99,
+                "gate_skipped": 0,
+                "recent_skipped": 0,
+                "blocked_ad": 0,
+                "blocked_gif": 0,
+                "window_count": 99,
+                "window_min_id": 123456789,
+                "window_max_id": 123456888,
+                "cursor_id": 123456888,
+            },
+        )
+        total += len(line) + 1
+
+    # Appwrite trims execution logs at 8000 characters; leave room for the run summary.
+    assert total < 6000
+
+
+def test_source_sort_key_orders_channel_ids_numerically() -> None:
+    module = load_module()
+
+    keys = ["-1002", "-10010", "-1001"]
+
+    assert sorted(keys, key=module._source_sort_key) == ["-10010", "-1002", "-1001"]
+
+
+def test_safe_log_skips_native_echo_when_logger_handles_it(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+    captured: list[str] = []
+    printed: list[str] = []
+
+    context = SimpleNamespace(log=lambda message: captured.append(message))
+    monkeypatch.setattr("builtins.print", lambda *args, **kwargs: printed.append(str(args[0])))
+
+    module._safe_log(context, "hello", echo_native=False)
+
+    assert captured == ["hello"]
+    assert printed == []
+
+
+def test_safe_log_prints_when_context_has_no_logger(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+    printed: list[str] = []
+
+    monkeypatch.setattr("builtins.print", lambda *args, **kwargs: printed.append(str(args[0])))
+
+    module._safe_log(SimpleNamespace(), "fallback", echo_native=False)
+
+    assert printed == ["fallback"]

@@ -1,0 +1,356 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Telegram Copier Runtime Architecture",
+    "output": "docs/diagrams/architecture.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/cursorcorpx/telegram_copier",
+      "revision": "e4cff844f004ba775a073bc95adb18239e268895"
+    },
+    "views": [
+      {
+        "id": "sync-path",
+        "label": "Copy path",
+        "focus": [
+          "sources",
+          "sync",
+          "dest"
+        ],
+        "note": "Source channels enter the sync function; copied posts leave for the destination channel."
+      },
+      {
+        "id": "state-path",
+        "label": "State and observability",
+        "focus": [
+          "sync",
+          "state",
+          "logs",
+          "relayroom"
+        ],
+        "note": "Checkpoints and run logs live in Appwrite; Relayroom reads them with a project-user session."
+      },
+      {
+        "id": "control-path",
+        "label": "Control plane",
+        "focus": [
+          "operator",
+          "relayroom",
+          "gh",
+          "sync"
+        ],
+        "note": "Operators trigger manual runs; GitHub Actions deploys the function on merge to main."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "operator",
+      "type": "external",
+      "label": "Operator",
+      "sublabel": "project user",
+      "pos": [
+        40,
+        60
+      ],
+      "size": [
+        140,
+        56
+      ]
+    },
+    {
+      "id": "relayroom",
+      "type": "frontend",
+      "label": "Relayroom",
+      "sublabel": "Appwrite Web SDK",
+      "pos": [
+        30,
+        170
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "tag": "static SPA"
+    },
+    {
+      "id": "gh",
+      "type": "cloud",
+      "label": "GitHub Actions",
+      "sublabel": "test then deploy",
+      "pos": [
+        820,
+        60
+      ],
+      "size": [
+        170,
+        60
+      ],
+      "tag": "main only"
+    },
+    {
+      "id": "sources",
+      "type": "external",
+      "label": "Source Channels",
+      "sublabel": "SOURCE_CHANNEL_IDS",
+      "pos": [
+        525,
+        60
+      ],
+      "size": [
+        180,
+        64
+      ],
+      "tag": "1..N"
+    },
+    {
+      "id": "sync",
+      "type": "backend",
+      "label": "Sync Function",
+      "sublabel": "Telethon user session",
+      "pos": [
+        520,
+        260
+      ],
+      "size": [
+        190,
+        76
+      ],
+      "tag": "cron 60 min",
+      "sources": [
+        {
+          "path": "appwrite/functions/webhook/src/main.py",
+          "label": "entrypoint"
+        },
+        {
+          "path": "appwrite.json",
+          "line": 5,
+          "label": "function config"
+        }
+      ]
+    },
+    {
+      "id": "dest",
+      "type": "external",
+      "label": "Destination Channel",
+      "sublabel": "DESTINATION_CHANNEL_ID",
+      "pos": [
+        820,
+        260
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "tag": "copy mode"
+    },
+    {
+      "id": "state",
+      "type": "database",
+      "label": "State DB",
+      "sublabel": "telegram_copier_state",
+      "pos": [
+        520,
+        430
+      ],
+      "size": [
+        190,
+        64
+      ],
+      "tag": "state_key=global"
+    },
+    {
+      "id": "logs",
+      "type": "database",
+      "label": "Run Logs",
+      "sublabel": "telegram_copier_logs",
+      "pos": [
+        820,
+        430
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "tag": "run counters"
+    }
+  ],
+  "connections": [
+    {
+      "id": "sign-in",
+      "from": "operator",
+      "to": "relayroom",
+      "label": "sign in",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "straight",
+      "labelAt": [
+        110,
+        145
+      ]
+    },
+    {
+      "id": "manual-run",
+      "from": "relayroom",
+      "to": "sync",
+      "label": "manual execution",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "left",
+      "via": [
+        [
+          460,
+          202
+        ],
+        [
+          460,
+          298
+        ]
+      ],
+      "labelAt": [
+        330,
+        186
+      ]
+    },
+    {
+      "id": "read-state",
+      "from": "relayroom",
+      "to": "state",
+      "label": "read state + runs",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "via": [
+        [
+          110,
+          350
+        ],
+        [
+          460,
+          350
+        ],
+        [
+          460,
+          400
+        ],
+        [
+          615,
+          400
+        ]
+      ]
+    },
+    {
+      "id": "deploy",
+      "from": "gh",
+      "to": "sync",
+      "label": "appwrite push functions",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "left",
+      "via": [
+        [
+          905,
+          210
+        ],
+        [
+          480,
+          210
+        ],
+        [
+          480,
+          298
+        ]
+      ]
+    },
+    {
+      "id": "fetch-window",
+      "from": "sources",
+      "to": "sync",
+      "label": "lookback window",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "via": [
+        [
+          615,
+          124
+        ],
+        [
+          615,
+          260
+        ]
+      ]
+    },
+    {
+      "id": "copy-post",
+      "from": "sync",
+      "to": "dest",
+      "label": "copy post",
+      "variant": "emphasis"
+    },
+    {
+      "id": "checkpoint",
+      "from": "sync",
+      "to": "state",
+      "label": "checkpoint",
+      "variant": "emphasis",
+      "labelAt": [
+        615,
+        360
+      ]
+    },
+    {
+      "id": "run-log",
+      "from": "sync",
+      "to": "logs",
+      "label": "run counters",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "top",
+      "via": [
+        [
+          760,
+          298
+        ],
+        [
+          760,
+          380
+        ],
+        [
+          905,
+          380
+        ]
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Runtime path",
+      "items": [
+        "Sources are read by message timestamp inside LOOKBACK_MINUTES",
+        "COPY_MODE=copy posts as the channel itself; forward restores attribution",
+        "Flood wait halts the run instead of dropping the checkpoint"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "State and idempotency",
+      "items": [
+        "state_key=global holds per-source last_id and a recent ID window",
+        "Cursor gate plus recent dedupe prevent duplicate pushes",
+        "Oversized payloads compact before save to fit the row limit"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Control and observability",
+      "items": [
+        "Relayroom reads Appwrite with a project-user session, never an API key",
+        "Manual runs call Functions.createExecution asynchronously",
+        "GitHub Actions deploys only after pytest passes on main"
+      ]
+    }
+  ]
+}

@@ -14,10 +14,20 @@
       "timeout": 300,
       "execute": [],
       "events": [],
-      "schedule": "*/10 * * * *",
+      "interval": 60,
       "scopes": [
         "databases.read",
-        "databases.write"
+        "databases.write",
+        "documentsdb.read",
+        "vectorsdb.read",
+        "documentsdb.write",
+        "vectorsdb.write",
+        "sessions.read",
+        "sessions.write",
+        "teams.read",
+        "teams.write",
+        "users.read",
+        "users.write"
       ]
     },
     {
@@ -32,7 +42,6 @@
       "timeout": 30,
       "execute": [],
       "events": [],
-      "schedule": "",
       "scopes": [
         "databases.read",
         "databases.write"
