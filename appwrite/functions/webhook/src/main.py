@@ -21,6 +21,24 @@ TELEGRAM_LINK_PATTERN = re.compile(r"(?:https?://)?(?:www\.)?(?:t\.me|telegram\.
 YOUTUBE_PATTERN = re.compile(r"(?:https?://)?(?:www\.)?youtube\.com[^\s]*", re.IGNORECASE)
 AD_BLOCK_STRICT_PATTERN = re.compile(r"(?:#ad\b|insideads[\w-]*)", re.IGNORECASE)
 AD_BLOCK_GENERIC_WORD_PATTERN = re.compile(r"\bad\b", re.IGNORECASE)
+# Promotional/ad footer signature detection: marketing text paired with a Telegram
+# share link. These footers are stripped from copied messages (word + attached
+# link); a message left empty after stripping is treated as a pure ad and skipped.
+AD_FOOTER_LINK_PATTERN = re.compile(
+    r"(?:https?://)?(?:www\.)?(?:t\.me|telegram\.me)/(?!joinchat/\+?)([A-Za-z0-9_]+)",
+    re.IGNORECASE,
+)
+AD_FOOTER_KEYWORD_PATTERN = re.compile(
+    r"(?:backup|vault|18\s*\+|powered\s+by|movie\s*search|reQwest)",
+    re.IGNORECASE,
+)
+# Footer/promotional signature phrases always stripped from copied message text.
+FOOTER_PHRASES = (
+    "𝙰𝚍𝚞𝚕𝚝 𝙱𝚊𝚌𝚔𝚞𝚙 ➥「18+ BACK-UP🔞 (https://t.me/backupx08)」",
+    "𝙿𝚘𝚠𝚎𝚛e𝚍 𝙱𝚢➥@ULTRONE_BACKUP",
+    "𝙼𝚘𝚟𝚒𝚎𝚜 𝚂𝚎𝚊𝚛𝚌𝚑 𝙶𝚛𝚘𝚞𝚙 ➥@ULTRON_MOVIE_REQWEST",
+    "@DVDWO_BACKUP",
+)
 IST_TIMEZONE = timezone(timedelta(hours=5, minutes=30))
 
 
@@ -974,12 +992,56 @@ def _set_run_meta(state: dict[str, Any], **kwargs: Any) -> None:
         meta[key] = value
 
 
+def _is_ad_footer_line(line: str) -> bool:
+    """True when a line is a promotional/ad footer (marketing text + Telegram link)."""
+    stripped = line.strip()
+    if not stripped:
+        return False
+    link_match = AD_FOOTER_LINK_PATTERN.search(stripped)
+    if link_match is None:
+        return False
+    username = link_match.group(1)
+    return bool(
+        AD_FOOTER_KEYWORD_PATTERN.search(stripped)
+        or AD_FOOTER_KEYWORD_PATTERN.search(username)
+    )
+
+
+def _scrub_ad_footer_lines(text: str) -> str:
+    """Drop promotional/ad footer lines while keeping all other content."""
+    return "\n".join("" if _is_ad_footer_line(line) else line for line in text.split("\n"))
+
+
+def _block_footer_ad_messages() -> bool:
+    return os.getenv("BLOCK_FOOTER_AD_MESSAGES", "1").strip().lower() in ("1", "true", "yes", "on")
+
+
 def _sanitize_message_text(text: str) -> str:
-    cleaned = text
     modified = False
     strip_t_links = os.getenv("STRIP_T_LINKS", "0").strip().lower() in ("1", "true", "yes", "on")
     strip_youtube = os.getenv("STRIP_YOUTUBE_LINKS", "0").strip().lower() in ("1", "true", "yes", "on")
     bad_words_csv = os.getenv("FILTER_BAD_WORDS", "").strip()
+
+    # Footer/promotional signature phrases are always stripped. Removing a
+    # phrase drops that line only when the line consisted entirely of footer
+    # text, so intentional blank lines elsewhere in the message are preserved.
+    lines = text.split("\n")
+    out_lines: list[str] = []
+    for line in lines:
+        scrubbed = line
+        for phrase in FOOTER_PHRASES:
+            updated = scrubbed.replace(phrase, "")
+            if updated != scrubbed:
+                modified = True
+            scrubbed = updated
+        # Drop whole promotional/ad footer lines (word + attached Telegram link).
+        if _is_ad_footer_line(scrubbed):
+            scrubbed = ""
+            modified = True
+        if scrubbed.strip() == "" and line.strip() != "":
+            continue
+        out_lines.append(scrubbed)
+    cleaned = "\n".join(out_lines)
 
     # Optional filters; defaults preserve links exactly as in source.
     if strip_t_links:
@@ -1001,7 +1063,7 @@ def _sanitize_message_text(text: str) -> str:
     if not modified:
         return text
 
-    # Normalize spaces introduced by removals.
+    # Normalize spaces introduced by removals (intentional blank lines are kept).
     cleaned = re.sub(r"[ \t]{2,}", " ", cleaned)
     cleaned = re.sub(r" *\n *", "\n", cleaned)
     return cleaned.strip()
@@ -1014,11 +1076,33 @@ def _should_skip_message_text(text: str) -> bool:
     block_generic_ad_word = os.getenv("BLOCK_GENERIC_AD_WORD", "0").strip().lower() in ("1", "true", "yes", "on")
     if block_generic_ad_word and AD_BLOCK_GENERIC_WORD_PATTERN.search(value):
         return True
+    # Strict mode: skip ANY message that contains an ad/footer signature, even if
+    # it also carries real content (BLOCK_ANY_FOOTER_AD_MESSAGE=1).
+    if os.getenv("BLOCK_ANY_FOOTER_AD_MESSAGE", "0").strip().lower() in ("1", "true", "yes", "on"):
+        if any(_is_ad_footer_line(line) for line in value.split("\n")):
+            return True
+    # Default no-copy rule: a message that is *only* promotional/ad footer content
+    # (marketing text + Telegram link, nothing else) is skipped entirely instead of
+    # being copied. Normal messages merely appending a footer are still copied with
+    # the footer stripped (see _sanitize_message_text).
+    if _block_footer_ad_messages() and value.strip():
+        leftovers = _scrub_ad_footer_lines(value)
+        leftovers = TELEGRAM_LINK_PATTERN.sub("", leftovers)
+        if leftovers.strip() == "":
+            return True
     return False
 
 
 def _is_cursor_gate_enabled() -> bool:
     return os.getenv("ENABLE_CURSOR_GATE", "1").strip().lower() in ("1", "true", "yes", "on")
+
+
+def _force_full_lookback_copy() -> bool:
+    """When enabled, every run copies ALL messages inside the lookback window,
+    ignoring the saved cursor and the recent processed-list (no dedupe skip).
+    Useful for manual backfill / resync executions. Ad/GIF blocking still applies.
+    """
+    return os.getenv("FORCE_FULL_LOOKBACK_COPY", "0").strip().lower() in ("1", "true", "yes", "on")
 
 
 def _is_copy_mode() -> bool:
@@ -1439,6 +1523,7 @@ async def _copy_source_messages(client: Any, settings: AppwriteSettings) -> dict
     )
     source_errors.update(entity_errors)
     use_cursor_gate = _is_cursor_gate_enabled()
+    force_full_copy = _force_full_lookback_copy()
     use_snapshot_recovery = _is_snapshot_recovery_enabled()
     run_window_ids_by_source: dict[str, list[int]] = {str(source_id): [] for source_id in settings.source_channel_ids}
     recent_snapshot_ids_by_source = (
@@ -1531,11 +1616,14 @@ async def _copy_source_messages(client: Any, settings: AppwriteSettings) -> dict
                 original_group_ids = list(message_ids)
                 # Prevent re-copy loops: process only new IDs for this source cursor.
                 # Snapshot recovery still works for missed IDs that are newer than last_seen_id.
+                # FORCE_FULL_LOOKBACK_COPY bypasses the cursor gate so every message in
+                # the lookback window is processed on each run.
                 message_ids = [
                     mid
                     for mid in message_ids
                     if (
-                        (not use_cursor_gate)
+                        force_full_copy
+                        or (not use_cursor_gate)
                         or cursor_gate_disabled
                         or mid > last_seen_id
                         or (mid in recovered_id_set and mid > last_seen_id)
@@ -1544,10 +1632,12 @@ async def _copy_source_messages(client: Any, settings: AppwriteSettings) -> dict
                 skipped_cursor_gate_total += len(original_group_ids) - len(message_ids)
                 if not message_ids:
                     continue
-                # Skip IDs already processed in recent window to avoid duplicates.
-                before_recent_filter = len(message_ids)
-                message_ids = [mid for mid in message_ids if mid not in recent_set]
-                skipped_duplicate_recent_total += before_recent_filter - len(message_ids)
+                # Skip IDs already processed in recent window to avoid duplicates
+                # (unless force-full copy is enabled).
+                if not force_full_copy:
+                    before_recent_filter = len(message_ids)
+                    message_ids = [mid for mid in message_ids if mid not in recent_set]
+                    skipped_duplicate_recent_total += before_recent_filter - len(message_ids)
                 if not message_ids:
                     continue
                 group_by_id = {int(getattr(msg, "id", 0)): msg for msg in messages}
@@ -2075,7 +2165,7 @@ async def _repost_messages_without_forward(
     processed: list[int] = []
 
     # Album path: keep multi-media posts grouped instead of splitting them into
-    # separate destination messages.
+    # separate destination messages (GIF members are included in the album).
     if len(ordered_ids) > 1 and all(
         by_id.get(mid) is not None and _sendable_media_kind(by_id[mid]) for mid in ordered_ids
     ):

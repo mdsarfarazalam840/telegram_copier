@@ -30,6 +30,7 @@
 ## Key Runtime Rules
 - Dedupe:
   - Skip already processed IDs (`recent`) and older IDs (`last_id`).
+  - `FORCE_FULL_LOOKBACK_COPY=1` bypasses both guards: each run copies ALL messages in the lookback window regardless of cursor/recent state (ad/GIF blocking still applies). Use for manual backfill/resync; leave off for normal scheduled runs to avoid duplicates.
 - Lookback:
   - Controlled by `LOOKBACK_MINUTES` (default 60).
   - Source fetch is strict time-window based (last `LOOKBACK_MINUTES` by message timestamp) for coverage/snapshoting.
@@ -45,12 +46,13 @@
 - Protected/forward-restricted chats:
   - Fallback repost path attempts direct send (text/media) without forward.
 - Sanitization:
-  - Removes:
-    - Telegram links (`t.me/...`, `telegram.me/...`, invite links)
-    - `youtube.com` URLs/tokens
-    - words `mc`, `bc` (case-insensitive whole words)
+  - Removes promotional/ad footer signature lines (marketing text + attached Telegram link),
+    e.g. the banned `𝙰𝚍𝚞𝚕𝚝 𝙱𝚊𝚌𝚔𝚞𝚙 ➥「18+ BACK-UP🔞 (https://t.me/backupx08)」` block.
+  - Also removes `youtube.com` URLs/tokens and words `mc`, `bc` (case-insensitive whole words).
+  - Normal Telegram links are preserved unless `STRIP_T_LINKS=1`; ad-footer links are removed as part of the dropped footer line.
 - Hard skips (not copied/forwarded):
   - Any message text matching ad markers (`#ad`, `insideads*`)
+  - Any message that is *only* promotional/ad footer content; with `BLOCK_ANY_FOOTER_AD_MESSAGE=1`, any message containing one
   - Optional stricter rule: standalone `ad` only when `BLOCK_GENERIC_AD_WORD=1`
   - GIF messages/media (`.gif`)
 - Media fallback safety:
@@ -71,6 +73,9 @@
 - `SOURCE_CHANNEL_USERNAMES` (optional ordered fallback for public sources not present in the session entity cache)
 - `LIMIT_PER_SOURCE` (1..200)
 - `LOOKBACK_MINUTES` (1..1440)
+- `FORCE_FULL_LOOKBACK_COPY` (optional; `1` copies everything in the lookback window each run, ignoring cursor + recent dedup)
+- `BLOCK_FOOTER_AD_MESSAGES` (optional; default `1` skips messages that are only ad-footer content)
+- `BLOCK_ANY_FOOTER_AD_MESSAGE` (optional; `1` skips any message containing an ad-footer signature)
 - `BLOCK_GENERIC_AD_WORD` (optional; `1` enables standalone `ad` blocking)
 
 ## Runtime Metrics
@@ -104,6 +109,9 @@
 - Added explicit `AuthKeyDuplicatedError` handling with actionable runtime error.
 - Added detailed skip-reason counters in run result/logs.
 - Added per-source execution logs: `Source coverage: checked=<n>/<total>` plus one compact line per configured source (`source=<id> f= c= g= r= a= i= w=`). Per-source stats also returned as `source_run_stats`. Kept compact because Appwrite trims execution logs at 8000 chars.
+- Added `FORCE_FULL_LOOKBACK_COPY=1` to copy every message in the lookback window on a run, bypassing both the cursor gate and the recent-processed dedup (ad/GIF blocking still applies). Use for manual backfill/resync; turn off for normal scheduled runs.
+- Added promotional/ad footer signature stripping: banned ad words + attached Telegram links (e.g. `18+ BACK-UP🔞` with `t.me/backupx08`) are dropped from copied text, and pure ad-footer messages are skipped. Added `BLOCK_ANY_FOOTER_AD_MESSAGE=1` to skip any message containing a footer signature.
+- Preserved normal Telegram links by default (strip only via `STRIP_T_LINKS=1`) while still removing ad-footer links.
 
 ## Deployment Status
 - As of 2026-02-24: code updated locally in workspace, tests passing.

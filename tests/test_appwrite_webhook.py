@@ -99,9 +99,12 @@ def test_group_message_ids_keeps_album_boundaries() -> None:
     assert grouped == [(False, [1]), (True, [2, 3]), (False, [4]), (True, [5])]
 
 
-def test_sanitize_message_text_preserves_links_by_default() -> None:
+def test_sanitize_message_text_preserves_telegram_links_by_default() -> None:
     module = load_module()
-    text = "visit https://t.me/some/path and https://t.me/+qKumi0QiYOsyMDY9 now"
+    text = (
+        "visit https://t.me/some/path and https://t.me/+qKumi0QiYOsyMDY9 "
+        "but keep https://example.com/x now"
+    )
     assert module._sanitize_message_text(text) == text
 
 
@@ -127,6 +130,62 @@ def test_sanitize_message_text_removes_bad_words_and_youtube_when_enabled(
     assert module._sanitize_message_text(text) == "hello world see and"
 
 
+def test_sanitize_message_text_strips_footer_phrases() -> None:
+    module = load_module()
+    text = (
+        "Movie update out now 🔥\n\n"
+        "𝙰𝚍𝚞𝚕𝚝 𝙱𝚊𝚌𝚔𝚞𝚙 ➥「18+ BACK-UP🔞 (https://t.me/backupx08)」\n"
+        "𝙿𝚘𝚠𝚎𝚛e𝚍 𝙱𝚢➥@ULTRONE_BACKUP\n"
+        "𝙼𝚘𝚟𝚒𝚎𝚜 𝚂𝚎𝚊𝚛𝚌𝚑 𝙶𝚛𝚘𝚞𝚙 ➥@ULTRON_MOVIE_REQWEST"
+    )
+    assert module._sanitize_message_text(text) == "Movie update out now 🔥"
+
+
+def test_sanitize_message_text_strips_footer_across_lines() -> None:
+    module = load_module()
+    text = (
+        "Info here\n"
+        "𝙰𝚍𝚞𝚕𝚝 𝙱𝚊𝚌𝚔𝚞𝚙 ➥「18+ BACK-UP🔞 (https://t.me/backupx08)」\n"
+        "Upper line\n"
+        "𝙿𝚘𝚠𝚎𝚛e𝚍 𝙱𝚢➥@ULTRONE_BACKUP\n"
+        "End"
+    )
+    assert module._sanitize_message_text(text) == "Info here\nUpper line\nEnd"
+
+
+def test_sanitize_message_text_preserves_interior_blank_lines() -> None:
+    module = load_module()
+    text = (
+        "Title\n"
+        "\n"
+        "Paragraph\n"
+        "𝙿𝚘𝚠𝚎𝚛e𝚍 𝙱𝚢➥@ULTRONE_BACKUP"
+    )
+    assert module._sanitize_message_text(text) == "Title\n\nParagraph"
+
+
+def test_sanitize_message_text_keeps_blank_lines_for_optional_filters(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = load_module()
+    monkeypatch.setenv("FILTER_BAD_WORDS", "mc")
+    text = "Title\n\nparagraph mc"
+    assert module._sanitize_message_text(text) == "Title\n\nparagraph"
+
+
+def test_sanitize_message_text_strips_dvdwo_backup_handle() -> None:
+    module = load_module()
+    text = "Post here\n@DVDWO_BACKUP"
+    assert module._sanitize_message_text(text) == "Post here"
+
+
+def test_sanitize_message_text_preserves_standalone_telegram_link_line() -> None:
+    module = load_module()
+    text = "Info top\nhttps://t.me/joinchat/abc123\nInfo bottom"
+    # Normal t.me links are preserved by default (only ad-footer lines are dropped).
+    assert module._sanitize_message_text(text) == text
+
+
 def test_should_skip_message_text_blocks_ad_markers(monkeypatch: pytest.MonkeyPatch) -> None:
     module = load_module()
     assert module._should_skip_message_text("#ad InsideAds (https://t.me/InsideAds_bot/open?startapp=abc)")
@@ -135,6 +194,49 @@ def test_should_skip_message_text_blocks_ad_markers(monkeypatch: pytest.MonkeyPa
     monkeypatch.setenv("BLOCK_GENERIC_AD_WORD", "1")
     assert module._should_skip_message_text("this is an ad")
     assert not module._should_skip_message_text("this is a normal update")
+
+
+def test_sanitize_message_text_strips_ad_footer_signatures_with_links() -> None:
+    module = load_module()
+    text = (
+        "Batman 2022 full movie out now 🍿\n"
+        "Type /start to get link\n\n"
+        "𝙰𝚍𝚞𝚕𝚝 𝙱𝚊𝚌𝚔𝚞𝚙 ➥「18+ BACK-UP🔞 (https://t.me/backupx08)」\n"
+        "𝙿𝚘𝚠𝚎𝚛𝚎𝚍 𝚋𝚢➥ 𝐌𝐎𝐕𝐈𝐄 𝐕𝐀𝐔𝐋𝐓 𝐁𝐀𝐂𝐊𝐔𝐏😃 (https://t.me/MOVIEVAULTBACKUP)"
+    )
+    assert module._sanitize_message_text(text) == (
+        "Batman 2022 full movie out now 🍿\nType /start to get link"
+    )
+
+
+def test_should_skip_message_text_skips_pure_ad_footer_only() -> None:
+    module = load_module()
+    # A message that is *only* the promotional/ad footer is skipped entirely.
+    assert module._should_skip_message_text(
+        "𝙰𝚍𝚞𝚕𝚝 𝙱𝚊𝚌𝚔𝚞𝚙 ➥「18+ BACK-UP🔞 (https://t.me/backupx08)」"
+    )
+    assert module._should_skip_message_text(
+        "𝙿𝚘𝚠𝚎𝚛𝚎𝚍 𝚋𝚢➥ 𝐌𝐎𝐕𝐈𝐄 𝐕𝐀𝐔𝐋𝐓 𝐁𝐀𝐂𝐊𝐔𝐏😃 (https://t.me/MOVIEVAULTBACKUP)"
+    )
+    # A real message that merely appends a footer is still copied (footer stripped).
+    assert not module._should_skip_message_text(
+        "Movie update out now 🔥\n"
+        "𝙰𝚍𝚞𝚕𝚝 𝙱𝚊𝚌𝚔𝚞𝚙 ➥「18+ BACK-UP🔞 (https://t.me/backupx08)」"
+    )
+    assert not module._should_skip_message_text("")
+
+
+def test_should_skip_message_text_strict_mode_skips_any_ad_footer(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = load_module()
+    monkeypatch.setenv("BLOCK_ANY_FOOTER_AD_MESSAGE", "1")
+    # Strict mode skips a real message that merely appends an ad footer.
+    assert module._should_skip_message_text(
+        "Movie update out now 🔥\n"
+        "𝙰𝚍𝚞𝚕𝚝 𝙱𝚊𝚌𝚔𝚞𝚙 ➥「18+ BACK-UP🔞 (https://t.me/backupx08)」"
+    )
+    assert not module._should_skip_message_text("Movie update out now 🔥")
 
 
 def test_is_gif_message_detects_flag() -> None:
@@ -246,6 +348,115 @@ def test_copy_source_messages_forwards_each_group(monkeypatch: pytest.MonkeyPatc
 
     assert forward_mock.await_count == 2
     assert result["copied"] == 2
+
+
+def test_copy_source_messages_force_full_copies_ignores_recent(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = load_module()
+    monkeypatch.setenv("FORCE_FULL_LOOKBACK_COPY", "1")
+
+    # State already records id=1 as processed (cursor=1, recent=[1]).
+    async def fake_load_state(client):  # noqa: ANN001
+        return {"sources": {"-1001": {"last_id": 1, "recent": [1]}}}, 1
+
+    async def fake_save_state(client, state, state_message_id):  # noqa: ANN001
+        return 1, True
+
+    now = datetime.now(timezone.utc)
+
+    async def fake_fetch_recent_messages(client, source_id, last_seen_id, cutoff_dt):  # noqa: ANN001
+        return [
+            SimpleNamespace(id=1, message="post one", grouped_id=None, date=now),
+            SimpleNamespace(id=2, message="post two", grouped_id=None, date=now),
+        ]
+
+    forward_mock = AsyncMock(return_value=(1, 0, (1,)))
+    run_snapshot_mock = AsyncMock(return_value=[99])
+
+    monkeypatch.setattr(module, "_load_state", fake_load_state)
+    monkeypatch.setattr(module, "_save_state", fake_save_state)
+    monkeypatch.setattr(module, "_fetch_recent_messages", fake_fetch_recent_messages)
+    monkeypatch.setattr(module, "_load_recent_run_snapshot_ids", AsyncMock(return_value={}))
+    monkeypatch.setattr(module, "_forward_with_fallback", forward_mock)
+    monkeypatch.setattr(module, "_save_run_window_ids", run_snapshot_mock)
+
+    settings = module.AppwriteSettings(
+        api_id=1,
+        api_hash="x",
+        session_string="y",
+        source_channel_ids=(-1001,),
+        destination_channel_id=-2002,
+        limit_per_source=50,
+        lookback_minutes=60,
+    )
+
+    result = asyncio.run(module._copy_source_messages(client=SimpleNamespace(), settings=settings))
+
+    # Even though id=1 is already in recent/cursor, force-full copies it again.
+    assert forward_mock.await_count == 2
+    assert result["copied"] == 2
+    assert result["skipped_duplicate_recent"] == 0
+    assert result["skipped_cursor_gate"] == 0
+
+
+def test_sanitize_message_text_strips_exact_ad_footer_phrase() -> None:
+    module = load_module()
+    ad_phrase = "𝙰𝚍𝚞𝚕𝚝 𝙱𝚊𝚌𝚔𝚞𝚙 ➥「18+ BACK-UP🔞 (https://t.me/backupx08)」"
+    # The banned ad word/link is stripped, while the rest of the message is kept.
+    assert module._sanitize_message_text(f"Movie update out now 🔥\n{ad_phrase}") == "Movie update out now 🔥"
+    # A message that is *only* the ad phrase is skipped entirely.
+    assert module._should_skip_message_text(ad_phrase)
+
+
+def test_copy_source_messages_force_full_still_blocks_ad_messages(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = load_module()
+    monkeypatch.setenv("FORCE_FULL_LOOKBACK_COPY", "1")
+
+    async def fake_load_state(client):  # noqa: ANN001
+        return {"sources": {}}, 1
+
+    async def fake_save_state(client, state, state_message_id):  # noqa: ANN001
+        return 1, True
+
+    now = datetime.now(timezone.utc)
+    ad_phrase = "𝙰𝚍𝚞𝚕𝚝 𝙱𝚊𝚌𝚔𝚞𝚙 ➥「18+ BACK-UP🔞 (https://t.me/backupx08)」"
+
+    async def fake_fetch_recent_messages(client, source_id, last_seen_id, cutoff_dt):  # noqa: ANN001
+        return [
+            SimpleNamespace(id=1, message=ad_phrase, grouped_id=None, date=now),
+            SimpleNamespace(id=2, message="normal message", grouped_id=None, date=now),
+        ]
+
+    forward_mock = AsyncMock(return_value=(1, 0, (2,)))
+    run_snapshot_mock = AsyncMock(return_value=[99])
+
+    monkeypatch.setattr(module, "_load_state", fake_load_state)
+    monkeypatch.setattr(module, "_save_state", fake_save_state)
+    monkeypatch.setattr(module, "_fetch_recent_messages", fake_fetch_recent_messages)
+    monkeypatch.setattr(module, "_load_recent_run_snapshot_ids", AsyncMock(return_value={}))
+    monkeypatch.setattr(module, "_forward_with_fallback", forward_mock)
+    monkeypatch.setattr(module, "_save_run_window_ids", run_snapshot_mock)
+
+    settings = module.AppwriteSettings(
+        api_id=1,
+        api_hash="x",
+        session_string="y",
+        source_channel_ids=(-1001,),
+        destination_channel_id=-2002,
+        limit_per_source=50,
+        lookback_minutes=60,
+    )
+
+    result = asyncio.run(module._copy_source_messages(client=SimpleNamespace(), settings=settings))
+
+    # Even in force-full mode, the pure ad message is still blocked and NOT copied.
+    assert forward_mock.await_count == 1
+    assert result["copied"] == 1
+    assert result["skipped_blocked_ad"] == 1
+    assert result["skipped_blocked_gif"] == 0
 
 
 def test_copy_source_messages_skips_ad_messages(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -1400,6 +1611,50 @@ def test_repost_messages_without_forward_sends_album_as_group(monkeypatch: pytes
     assert client.send_file_kwargs is not None
     assert len(client.send_file_kwargs["file"]) == 2
     assert client.send_file_kwargs["caption"] == ["first", None]
+    assert (copied, skipped, processed) == (2, 0, (11, 12))
+
+
+def test_repost_messages_without_forward_sends_gif_album_as_group(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+    monkeypatch.delenv("COPY_MODE", raising=False)
+
+    class MessageMediaPhoto:
+        pass
+
+    class FakeClient:
+        def __init__(self) -> None:
+            self.send_file_calls = []
+            self.send_message_calls = 0
+
+        async def get_messages(self, source_id, ids):  # noqa: ANN001
+            return [
+                SimpleNamespace(id=11, message="first", entities=None, media=MessageMediaPhoto(), gif=False),
+                SimpleNamespace(id=12, message="", entities=None, media=MessageMediaPhoto(), gif=True),
+            ]
+
+        async def send_file(self, **kwargs):  # noqa: ANN003
+            self.send_file_calls.append(kwargs)
+            return FakeSentMessage(21)
+
+        async def send_message(self, **kwargs):  # noqa: ANN003
+            self.send_message_calls += 1
+            return FakeSentMessage(22)
+
+    client = FakeClient()
+    copied, skipped, processed = asyncio.run(
+        module._repost_messages_without_forward(
+            client=client,
+            destination_channel_id=-2002,
+            source_id=-1001,
+            message_ids=[11, 12],
+        )
+    )
+
+    # The album is sent as one group even when it contains a GIF, so both
+    # members are copied (GIF members are not skipped).
+    assert len(client.send_file_calls) == 1
+    assert len(client.send_file_calls[0]["file"]) == 2
+    assert client.send_message_calls == 0
     assert (copied, skipped, processed) == (2, 0, (11, 12))
 
 
