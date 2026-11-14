@@ -27,7 +27,8 @@
         "teams.read",
         "teams.write",
         "users.read",
-        "users.write"
+        "users.write",
+        "executions.write"
       ]
     },
     {
