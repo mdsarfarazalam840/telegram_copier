@@ -51,6 +51,14 @@ class AppwriteSettings:
     destination_channel_id: int
     limit_per_source: int
     lookback_minutes: int
+    backfill_enabled: bool = False
+    backfill_since_ms: int = 0
+    backfill_chunk_size: int = 100
+    backfill_time_budget_seconds: int = 240
+    copy_date: str = ""
+    copy_date_start_ms: int = 0
+    copy_date_end_ms: int = 0
+    copy_all: bool = False
 
 
 @dataclass(frozen=True)
@@ -66,7 +74,15 @@ MAX_RECENT_IDS = 2000
 MAX_STATE_PAYLOAD_CHARS = 3800
 MAX_RUN_MESSAGE_CHARS = 3800
 DEFAULT_FUNCTION_NAME = "telegram_copier_run_v1"
-BUILD_VERSION = "2026-10-30-source-coverage-v6"
+BUILD_VERSION = "2026-11-15-auto-continue-v6"
+# A run that stops on RUN_TIME_BUDGET_SECONDS queues the next execution instead
+# of waiting for the hourly schedule. One execution is capped by the function
+# timeout, so a 5,000-message backlog is drained by a chain of runs.
+AUTO_CONTINUE_DEFAULT_MAX_RUNS = 10
+# Upper bound on messages fetched for one source in one live run. The cursor only
+# advances past what a run actually delivered, so anything above this ceiling is
+# picked up by the next hourly run instead of being dropped.
+LIVE_FETCH_CEILING = 5000
 DB_LOG_LAST_ERROR = ""
 DB_STATE_LAST_ERROR = ""
 STATE_ROW_ID = "state_global_v1"
@@ -828,6 +844,60 @@ def _parse_source_ids() -> tuple[int, ...]:
     return ()
 
 
+def _parse_backfill_since_ms(raw: str, days: int) -> int:
+    """Resolve the backfill floor to epoch milliseconds.
+
+    `BACKFILL_SINCE_IST` accepts an ISO date/time or `YYYY-MM-DD[ HH:MM[:SS]]`
+    and is treated as IST when no offset is given. When unset, the floor is
+    `now - BACKFILL_DAYS` days. `BACKFILL_DAYS=0` means full channel history.
+    """
+    text = raw.strip()
+    if text:
+        parsed: datetime | None = None
+        try:
+            parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+        except ValueError:
+            for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"):
+                try:
+                    parsed = datetime.strptime(text, fmt)
+                    break
+                except ValueError:
+                    continue
+        if parsed is None:
+            raise ValueError(
+                "BACKFILL_SINCE_IST must be an ISO date or YYYY-MM-DD[ HH:MM[:SS]]."
+            )
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=IST_TIMEZONE)
+        return int(parsed.timestamp() * 1000)
+    if days <= 0:
+        return 0
+    return int((datetime.now(timezone.utc) - timedelta(days=days)).timestamp() * 1000)
+
+
+def _parse_copy_date_range_ms(raw: str) -> tuple[int, int]:
+    """Resolve `COPY_DATE` (YYYY-MM-DD, IST) to `[day_start_ms, day_end_ms)`.
+
+    A plain date is treated as IST so the window matches the operator's day,
+    the same rule `BACKFILL_SINCE_IST` follows. An empty value disables the
+    date-only copy mode and returns `(0, 0)`.
+    """
+    text = raw.strip()
+    if not text:
+        return 0, 0
+    try:
+        day = datetime.strptime(text, "%Y-%m-%d")
+    except ValueError as exc:
+        raise ValueError("COPY_DATE must be YYYY-MM-DD (for example 2026-11-08).") from exc
+    start = day.replace(tzinfo=IST_TIMEZONE)
+    end = start + timedelta(days=1)
+    return int(start.timestamp() * 1000), int(end.timestamp() * 1000)
+
+
+def _env_flag(name: str, default: str = "0") -> bool:
+    return os.getenv(name, default).strip().lower() in ("1", "true", "yes", "on")
+
+
 def _load_settings_from_env() -> AppwriteSettings:
     api_id_raw = os.getenv("API_ID", "").strip()
     api_hash = os.getenv("API_HASH", "").strip()
@@ -835,6 +905,17 @@ def _load_settings_from_env() -> AppwriteSettings:
     destination_raw = os.getenv("DESTINATION_CHANNEL_ID", "").strip()
     limit_raw = os.getenv("LIMIT_PER_SOURCE", "50").strip()
     lookback_raw = os.getenv("LOOKBACK_MINUTES", "60").strip()
+    backfill_enabled_raw = os.getenv("BACKFILL_ENABLED", "0").strip()
+    backfill_since_raw = os.getenv("BACKFILL_SINCE_IST", "").strip()
+    backfill_days_raw = os.getenv("BACKFILL_DAYS", "2").strip() or "2"
+    backfill_chunk_raw = os.getenv("BACKFILL_CHUNK_SIZE", "100").strip() or "100"
+    time_budget_raw = os.getenv("RUN_TIME_BUDGET_SECONDS", "240").strip() or "240"
+    copy_date = os.getenv("COPY_DATE", "").strip()
+    if copy_date.lower() in ("none", "off", "no", "-", "clear"):
+        # Appwrite variables cannot always be blanked or deleted from the UI;
+        # these words mean "not set" so date mode stays off.
+        copy_date = ""
+    copy_all = _env_flag("COPY_ALL")
 
     if not api_id_raw:
         raise ValueError("API_ID is required.")
@@ -854,15 +935,42 @@ def _load_settings_from_env() -> AppwriteSettings:
         destination_channel_id = int(destination_raw)
         limit_per_source = int(limit_raw)
         lookback_minutes = int(lookback_raw)
+        backfill_days = int(backfill_days_raw)
+        backfill_chunk_size = int(backfill_chunk_raw)
+        backfill_time_budget_seconds = int(time_budget_raw)
     except ValueError as exc:
         raise ValueError(
-            "API_ID, DESTINATION_CHANNEL_ID, LIMIT_PER_SOURCE, and LOOKBACK_MINUTES must be integers."
+            "API_ID, DESTINATION_CHANNEL_ID, LIMIT_PER_SOURCE, LOOKBACK_MINUTES, "
+            "BACKFILL_DAYS, BACKFILL_CHUNK_SIZE, and RUN_TIME_BUDGET_SECONDS must be integers."
         ) from exc
 
     if limit_per_source < 1 or limit_per_source > 200:
         raise ValueError("LIMIT_PER_SOURCE must be between 1 and 200.")
     if lookback_minutes < 1 or lookback_minutes > 1440:
         raise ValueError("LOOKBACK_MINUTES must be between 1 and 1440.")
+    if backfill_days < 0 or backfill_days > 3650:
+        raise ValueError("BACKFILL_DAYS must be between 0 and 3650.")
+    if backfill_chunk_size < 1 or backfill_chunk_size > 1000:
+        raise ValueError("BACKFILL_CHUNK_SIZE must be between 1 and 1000.")
+    if backfill_time_budget_seconds < 30 or backfill_time_budget_seconds > 280:
+        raise ValueError("RUN_TIME_BUDGET_SECONDS must be between 30 and 280.")
+    if copy_date and _env_flag("BACKFILL_ENABLED"):
+        raise ValueError("Set either COPY_DATE or BACKFILL_ENABLED, not both.")
+    if copy_all and copy_date:
+        raise ValueError(
+            f"COPY_ALL=1 is set but COPY_DATE is still '{copy_date}'. "
+            "Delete the COPY_DATE variable (or set it to 'none') to copy the whole channel, "
+            "or set COPY_ALL=0 to copy only that date."
+        )
+    if copy_all and _env_flag("BACKFILL_ENABLED"):
+        # Both walk history with their own progress keys; running them together
+        # would spend the run budget twice on the same messages.
+        raise ValueError("Set either COPY_ALL or BACKFILL_ENABLED, not both.")
+    copy_date_start_ms, copy_date_end_ms = _parse_copy_date_range_ms(copy_date)
+
+    backfill_since_ms = (
+        _parse_backfill_since_ms(backfill_since_raw, backfill_days) if _env_flag("BACKFILL_ENABLED") else 0
+    )
 
     return AppwriteSettings(
         api_id=api_id,
@@ -872,6 +980,14 @@ def _load_settings_from_env() -> AppwriteSettings:
         destination_channel_id=destination_channel_id,
         limit_per_source=limit_per_source,
         lookback_minutes=lookback_minutes,
+        backfill_enabled=_env_flag("BACKFILL_ENABLED"),
+        backfill_since_ms=backfill_since_ms,
+        backfill_chunk_size=backfill_chunk_size,
+        backfill_time_budget_seconds=backfill_time_budget_seconds,
+        copy_date=copy_date,
+        copy_date_start_ms=copy_date_start_ms,
+        copy_date_end_ms=copy_date_end_ms,
+        copy_all=copy_all,
     )
 
 
@@ -978,18 +1094,41 @@ def _set_source_state(state: dict[str, Any], source_key: str, last_id: int, rece
         dedup_recent.append(mid)
     if len(dedup_recent) > MAX_RECENT_IDS:
         dedup_recent = dedup_recent[-MAX_RECENT_IDS:]
-    state.setdefault("sources", {})[source_key] = {
-        "last_id": int(last_id),
-        "recent": dedup_recent,
-        "updated_at_ist": _now_ist_iso(),
-        "updated_at_utc": _now_utc_iso(),
-    }
+    sources = state.setdefault("sources", {})
+    entry = sources.get(source_key)
+    if not isinstance(entry, dict):
+        entry = {}
+        sources[source_key] = entry
+    # Merge instead of replace so backfill progress fields survive live updates.
+    entry["last_id"] = int(last_id)
+    entry["recent"] = dedup_recent
+    entry["updated_at_ist"] = _now_ist_iso()
+    entry["updated_at_utc"] = _now_utc_iso()
 
 
 def _set_run_meta(state: dict[str, Any], **kwargs: Any) -> None:
     meta = state.setdefault("meta", {})
     for key, value in kwargs.items():
         meta[key] = value
+
+
+def _rotated_live_source_ids(state: dict[str, Any], source_ids: tuple[int, ...]) -> tuple[int, ...]:
+    """Order sources round-robin so one busy channel cannot starve the others.
+
+    The run budget stops delivery mid-source, so without rotation whichever
+    source is listed first keeps the whole budget run after run and the rest are
+    never reached while it still has a backlog.
+    """
+    if not source_ids:
+        return ()
+    meta = state.get("meta")
+    raw_index = meta.get("next_source_index", 0) if isinstance(meta, dict) else 0
+    try:
+        index = int(raw_index) % len(source_ids)
+    except (TypeError, ValueError):
+        index = 0
+    _set_run_meta(state, next_source_index=(index + 1) % len(source_ids))
+    return tuple(source_ids[index:]) + tuple(source_ids[:index])
 
 
 def _is_ad_footer_line(line: str) -> bool:
@@ -1069,8 +1208,41 @@ def _sanitize_message_text(text: str) -> str:
     return cleaned.strip()
 
 
+COPYRIGHT_NOTICE_PATTERNS = (
+    "couldn't be displayed on your device",
+    "could not be displayed on your device",
+    "can't be displayed on your device",
+    "cannot be displayed on your device",
+)
+
+
+def _block_copyright_messages() -> bool:
+    return os.getenv("BLOCK_COPYRIGHT_MESSAGES", "1").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
+
+
+def _is_copyright_blocked_text(text: str) -> bool:
+    """True for the placeholder Telegram shows instead of copyright-blocked media.
+
+    Restricted media is delivered as a notice such as "This message couldn't be
+    displayed on your device due to copyright infringement.". Forwarding it only
+    copies the notice, never the real post, so it is dropped.
+    """
+    value = (text or "").lower()
+    if "copyright infringement" not in value:
+        return False
+    normalized = " ".join(value.replace("\u2019", "'").replace("\u2018", "'").split())
+    return any(pattern in normalized for pattern in COPYRIGHT_NOTICE_PATTERNS)
+
+
 def _should_skip_message_text(text: str) -> bool:
     value = text or ""
+    if _block_copyright_messages() and _is_copyright_blocked_text(value):
+        return True
     if AD_BLOCK_STRICT_PATTERN.search(value):
         return True
     block_generic_ad_word = os.getenv("BLOCK_GENERIC_AD_WORD", "0").strip().lower() in ("1", "true", "yes", "on")
@@ -1202,20 +1374,44 @@ async def _fetch_recent_messages(
     cutoff_dt: datetime,
     source_entity: Any | None = None,
 ) -> list[Any]:
+    """Fetch the messages this live run has to deliver for one source.
+
+    With a stored cursor the fetch is cursor-based (`min_id`), oldest-first, and
+    has no time window: everything posted after the last handled message is
+    fetched, up to `LIVE_FETCH_CEILING`. A 1,000- or 5,000-message backlog is
+    therefore never dropped just because it is older than `LOOKBACK_MINUTES`,
+    and because the cursor only advances past messages a run actually delivered,
+    the next hourly run resumes exactly where this one stopped.
+
+    With no cursor yet (fresh state, new source) the `LOOKBACK_MINUTES` window
+    still applies, so a first run never walks a whole channel history.
+    """
+    target = source_entity if source_entity is not None else source_id
     messages: list[Any] = []
-    async for msg in client.iter_messages(source_entity if source_entity is not None else source_id):
-        msg_id = int(getattr(msg, "id", 0))
-        if msg_id <= 0:
-            continue
-        msg_date = getattr(msg, "date", None)
-        if msg_date is None:
-            continue
-        if msg_date.tzinfo is None:
-            msg_date = msg_date.replace(tzinfo=timezone.utc)
-        # Dates are descending as well; once below cutoff, the rest are out of range.
-        if msg_date < cutoff_dt:
-            break
-        messages.append(msg)
+    if last_seen_id > 0:
+        async for msg in client.iter_messages(
+            target,
+            min_id=int(last_seen_id),
+            reverse=True,
+            limit=LIVE_FETCH_CEILING,
+        ):
+            msg_id = int(getattr(msg, "id", 0))
+            if msg_id > last_seen_id:
+                messages.append(msg)
+    else:
+        async for msg in client.iter_messages(target):
+            msg_id = int(getattr(msg, "id", 0))
+            if msg_id <= 0:
+                continue
+            msg_date = getattr(msg, "date", None)
+            if msg_date is None:
+                continue
+            if msg_date.tzinfo is None:
+                msg_date = msg_date.replace(tzinfo=timezone.utc)
+            # Dates are descending as well; once below cutoff, the rest are out of range.
+            if msg_date < cutoff_dt:
+                break
+            messages.append(msg)
 
     messages.sort(key=lambda m: int(getattr(m, "id", 0)))
     return messages
@@ -1492,6 +1688,986 @@ def _group_message_ids(messages: list[Any]) -> list[tuple[bool, list[int]]]:
     return grouped
 
 
+def _get_backfill_state(
+    state: dict[str, Any], source_key: str, prefix: str = "backfill"
+) -> dict[str, Any]:
+    """Read newest-to-oldest walk progress stored under `prefix_*` keys."""
+    entry = (state.get("sources") or {}).get(source_key)
+    if not isinstance(entry, dict):
+        return {"max_id": 0, "done": 0, "floor_ms": 0, "scanned": 0, "copied": 0}
+    return {
+        "max_id": int(entry.get(f"{prefix}_max_id", 0) or 0),
+        "done": int(entry.get(f"{prefix}_done", 0) or 0),
+        "floor_ms": int(entry.get(f"{prefix}_floor_ms", 0) or 0),
+        "scanned": int(entry.get(f"{prefix}_scanned", 0) or 0),
+        "copied": int(entry.get(f"{prefix}_copied", 0) or 0),
+    }
+
+
+def _set_backfill_state(
+    state: dict[str, Any],
+    source_key: str,
+    *,
+    max_id: int,
+    done: int,
+    floor_ms: int,
+    scanned: int,
+    copied: int,
+    prefix: str = "backfill",
+) -> None:
+    sources = state.setdefault("sources", {})
+    entry = sources.get(source_key)
+    if not isinstance(entry, dict):
+        entry = {"last_id": 0, "recent": []}
+        sources[source_key] = entry
+    entry[f"{prefix}_max_id"] = int(max_id)
+    entry[f"{prefix}_done"] = int(done)
+    entry[f"{prefix}_floor_ms"] = int(floor_ms)
+    entry[f"{prefix}_scanned"] = int(scanned)
+    entry[f"{prefix}_copied"] = int(copied)
+    entry[f"{prefix}_updated_at_ist"] = _now_ist_iso()
+
+
+def _get_date_state(state: dict[str, Any], source_key: str, copy_date: str) -> dict[str, int]:
+    """Progress for the currently configured `COPY_DATE`, keyed on the date itself.
+
+    A different date returns an empty progress record, so changing `COPY_DATE`
+    always restarts the window without needing an explicit reset.
+    """
+    entry = (state.get("sources") or {}).get(source_key)
+    if not isinstance(entry, dict) or str(entry.get("copy_date", "")) != copy_date:
+        return {"max_id": 0, "done": 0, "scanned": 0, "copied": 0}
+    return {
+        "max_id": int(entry.get("copy_date_max_id", 0) or 0),
+        "done": int(entry.get("copy_date_done", 0) or 0),
+        "scanned": int(entry.get("copy_date_scanned", 0) or 0),
+        "copied": int(entry.get("copy_date_copied", 0) or 0),
+    }
+
+
+def _set_date_state(
+    state: dict[str, Any],
+    source_key: str,
+    copy_date: str,
+    *,
+    max_id: int,
+    done: int,
+    scanned: int,
+    copied: int,
+) -> None:
+    sources = state.setdefault("sources", {})
+    entry = sources.get(source_key)
+    if not isinstance(entry, dict):
+        entry = {"last_id": 0, "recent": []}
+        sources[source_key] = entry
+    entry["copy_date"] = copy_date
+    entry["copy_date_max_id"] = int(max_id)
+    entry["copy_date_done"] = int(done)
+    entry["copy_date_scanned"] = int(scanned)
+    entry["copy_date_copied"] = int(copied)
+    entry["copy_date_updated_at_ist"] = _now_ist_iso()
+
+
+def _run_deadline_monotonic(budget_seconds: int) -> float:
+    return time.monotonic() + max(1, int(budget_seconds))
+
+
+def _deadline_reached(deadline_monotonic: float) -> bool:
+    return time.monotonic() >= deadline_monotonic
+
+
+async def _fetch_backfill_chunk(
+    client: Any,
+    source_id: int,
+    max_id: int,
+    floor_dt: datetime | None,
+    chunk_size: int,
+    source_entity: Any | None = None,
+) -> tuple[list[Any], bool]:
+    """Fetch one newest-to-oldest backfill chunk ending below `max_id`."""
+    target = source_entity if source_entity is not None else source_id
+    kwargs: dict[str, Any] = {"limit": int(chunk_size)}
+    if max_id > 0:
+        kwargs["offset_id"] = int(max_id)
+
+    messages: list[Any] = []
+    reached_floor = False
+    async for msg in client.iter_messages(target, **kwargs):
+        msg_id = int(getattr(msg, "id", 0))
+        if msg_id <= 0:
+            continue
+        msg_date = getattr(msg, "date", None)
+        if msg_date is None:
+            continue
+        if msg_date.tzinfo is None:
+            msg_date = msg_date.replace(tzinfo=timezone.utc)
+        if floor_dt is not None and msg_date < floor_dt:
+            reached_floor = True
+            break
+        messages.append(msg)
+
+    done = reached_floor or len(messages) < int(chunk_size)
+    messages.sort(key=lambda m: int(getattr(m, "id", 0)))
+    return messages, done
+
+
+async def _fetch_date_chunk(
+    client: Any,
+    source_id: int,
+    start_dt: datetime,
+    end_dt: datetime,
+    max_id: int,
+    chunk_size: int,
+    source_entity: Any | None = None,
+) -> tuple[list[Any], bool]:
+    """Fetch one newest-to-oldest chunk of the COPY_DATE window `[start_dt, end_dt)`.
+
+    `offset_date` is what makes this a dated fetch instead of a relative one:
+    the first chunk starts at the end of the requested day, later chunks resume
+    with `offset_id` so a busy day can be copied across several executions.
+    """
+    target = source_entity if source_entity is not None else source_id
+    kwargs: dict[str, Any] = {"limit": int(chunk_size)}
+    if max_id > 0:
+        kwargs["offset_id"] = int(max_id)
+    else:
+        kwargs["offset_date"] = end_dt
+
+    messages: list[Any] = []
+    fetched = 0
+    lowest_window_id = 0
+    lowest_older_id = 0
+    async for msg in client.iter_messages(target, **kwargs):
+        fetched += 1
+        msg_id = int(getattr(msg, "id", 0))
+        if msg_id <= 0:
+            continue
+        msg_date = getattr(msg, "date", None)
+        if msg_date is None:
+            continue
+        if msg_date.tzinfo is None:
+            msg_date = msg_date.replace(tzinfo=timezone.utc)
+        if msg_date >= end_dt:
+            # Boundary noise at/above the window; never part of the day.
+            continue
+        if msg_date < start_dt:
+            lowest_older_id = msg_id if not lowest_older_id else min(lowest_older_id, msg_id)
+            continue
+        messages.append(msg)
+        lowest_window_id = msg_id if not lowest_window_id else min(lowest_window_id, msg_id)
+
+    # Two rules keep a day complete:
+    # 1. Never stop at the first message dated before the day. Channels whose
+    #    dates are not perfectly ordered used to end the window there, which is
+    #    the "only some messages were copied" symptom.
+    # 2. `done` counts every message the walk returned, not just the in-window
+    #    ones: a full batch is never treated as the end of the day just because
+    #    part of it fell outside the window.
+    crossed_start = lowest_older_id > 0 and (
+        lowest_window_id == 0 or lowest_older_id < lowest_window_id
+    )
+    done = fetched == 0 or fetched < int(chunk_size) or crossed_start
+    messages.sort(key=lambda m: int(getattr(m, "id", 0)))
+    return messages, done
+
+
+async def _deliver_group(
+    client: Any,
+    destination_channel_id: int,
+    source_id: int,
+    messages: list[Any],
+    group_ids: list[int],
+    source_entity_kwargs: dict[str, Any],
+    recent_ids: list[int],
+    recent_set: set[int],
+) -> tuple[int, int, set[int]]:
+    """Block ads/GIFs, then forward one album or single message.
+
+    Returns `(copied, skipped, handled_ids)`. Used by the date-only phase; it
+    mirrors the delivery rules of `_run_backfill_phase` so both paths filter and
+    group messages identically.
+    """
+    group_by_id = {int(getattr(msg, "id", 0)): msg for msg in messages}
+    blocked_ids = sorted(
+        {
+            mid
+            for mid in group_ids
+            if _should_skip_message_text((getattr(group_by_id.get(mid), "message", "") or "").strip())
+        }
+        | {mid for mid in group_ids if _is_gif_message(group_by_id.get(mid))}
+    )
+    remaining = [mid for mid in group_ids if mid not in set(blocked_ids)]
+    handled: set[int] = set(blocked_ids)
+    copied = 0
+    skipped = 0
+    if blocked_ids:
+        recent_ids.extend(blocked_ids)
+        recent_set.update(blocked_ids)
+        skipped += len(blocked_ids)
+    if not remaining:
+        return 0, skipped, handled
+
+    if len(remaining) > 1:
+        album_ids = set(remaining)
+        album_messages = [msg for msg in messages if int(getattr(msg, "id", 0)) in album_ids]
+        needs_sanitize = any(
+            _sanitize_message_text(getattr(msg, "message", None) or "")
+            != (getattr(msg, "message", "") or "")
+            for msg in album_messages
+        )
+        if needs_sanitize:
+            for msg in album_messages:
+                copied_count, skipped_count, _filtered, processed_ids = await _copy_single_with_optional_sanitize(
+                    client=client,
+                    destination_channel_id=destination_channel_id,
+                    source_id=source_id,
+                    message=msg,
+                    **source_entity_kwargs,
+                )
+                copied += copied_count
+                skipped += skipped_count
+                handled.update(processed_ids)
+        else:
+            copied_count, skipped_count, processed_ids = await _forward_with_fallback(
+                client=client,
+                destination_channel_id=destination_channel_id,
+                source_id=source_id,
+                message_ids=remaining,
+                as_album=True,
+                **source_entity_kwargs,
+            )
+            copied += copied_count
+            skipped += skipped_count
+            handled.update(processed_ids)
+    else:
+        single_message = group_by_id.get(remaining[0])
+        if single_message is None:
+            return 0, skipped, handled | set(remaining)
+        copied_count, skipped_count, _filtered, processed_ids = await _copy_single_with_optional_sanitize(
+            client=client,
+            destination_channel_id=destination_channel_id,
+            source_id=source_id,
+            message=single_message,
+            **source_entity_kwargs,
+        )
+        copied += copied_count
+        skipped += skipped_count
+        handled.update(processed_ids)
+
+    if handled:
+        ordered = sorted(handled)
+        recent_ids.extend(ordered)
+        recent_set.update(ordered)
+    return copied, skipped, handled
+
+
+async def _run_date_phase(
+    client: Any,
+    settings: AppwriteSettings,
+    state: dict[str, Any],
+    resolved_source_entities: dict[int, Any],
+    entity_errors: dict[str, str],
+    deadline_monotonic: float,
+) -> dict[str, Any]:
+    """Copy exactly one IST calendar day, newest-to-oldest and resumable.
+
+    The live cursor (`last_id`) is deliberately never advanced, matching the
+    backfill rule: replaying history must not make the scheduled lookback pass
+    skip messages it has not reached yet.
+    """
+    stats: dict[str, Any] = {
+        "enabled": int(bool(settings.copy_date)),
+        "sources_done": 0,
+        "sources_processed": 0,
+        "copied": 0,
+        "skipped": 0,
+        "scanned": 0,
+        "chunks": 0,
+        "deadline_reached": 0,
+        "reset": 0,
+        "errors": {},
+        "sources": {},
+    }
+    if not settings.copy_date:
+        return stats
+
+    start_dt = datetime.fromtimestamp(settings.copy_date_start_ms / 1000, tz=timezone.utc)
+    end_dt = datetime.fromtimestamp(settings.copy_date_end_ms / 1000, tz=timezone.utc)
+    reset_requested = _env_flag("COPY_DATE_RESET")
+
+    for source_id in settings.source_channel_ids:
+        key = str(source_id)
+        source_stats: dict[str, Any] = {"status": "ok", "fetched": 0, "copied": 0, "skipped": 0}
+        stats["sources"][key] = source_stats
+        if key in entity_errors:
+            source_stats["status"] = "entity_error"
+            source_stats["error"] = entity_errors.get(key, "")
+            continue
+        if _deadline_reached(deadline_monotonic):
+            stats["deadline_reached"] = 1
+            source_stats["status"] = "deadline"
+            break
+
+        progress = _get_date_state(state, key, settings.copy_date)
+        if reset_requested:
+            progress = {"max_id": 0, "done": 0, "scanned": 0, "copied": 0}
+            stats["reset"] = 1
+        if progress["done"]:
+            stats["sources_done"] += 1
+            source_stats["status"] = "already_done"
+            continue
+
+        source_entity = resolved_source_entities.get(source_id, source_id)
+        source_entity_kwargs = (
+            {"source_entity": source_entity} if source_id in resolved_source_entities else {}
+        )
+        max_id = int(progress.get("max_id") or 0)
+        scanned_total = int(progress.get("scanned") or 0)
+        copied_total = int(progress.get("copied") or 0)
+        skipped_total = 0
+        day_done = 0
+        deadline_hit = False
+        errored = False
+
+        # Keep fetching chunks until the start of the requested day is reached.
+        # One chunk per run was not enough: a busy day across several sources
+        # needs many chunks, and the scheduled interval would take hours.
+        while not _deadline_reached(deadline_monotonic):
+            try:
+                messages, chunk_done = await _fetch_date_chunk(
+                    client=client,
+                    source_id=source_id,
+                    start_dt=start_dt,
+                    end_dt=end_dt,
+                    max_id=max_id,
+                    chunk_size=settings.backfill_chunk_size,
+                    **source_entity_kwargs,
+                )
+            except Exception as exc:
+                source_stats["status"] = "error"
+                source_stats["error"] = f"{type(exc).__name__}: {exc}"
+                stats["errors"][key] = source_stats["error"]
+                _set_date_state(
+                    state,
+                    key,
+                    settings.copy_date,
+                    max_id=max_id,
+                    done=0,
+                    scanned=scanned_total,
+                    copied=copied_total,
+                )
+                errored = True
+                break
+
+            if not source_stats.get("chunks"):
+                stats["sources_processed"] += 1
+            stats["chunks"] += 1
+            source_stats["chunks"] = int(source_stats.get("chunks", 0) or 0) + 1
+
+            chunk_ids = {
+                int(getattr(msg, "id", 0)) for msg in messages if int(getattr(msg, "id", 0)) > 0
+            }
+
+            if not messages:
+                day_done = int(chunk_done)
+                _set_date_state(
+                    state,
+                    key,
+                    settings.copy_date,
+                    max_id=max_id,
+                    done=day_done,
+                    scanned=scanned_total,
+                    copied=copied_total,
+                )
+                break
+
+            last_seen_id, recent_ids = _get_source_state(state, key)
+            recent_set = set(recent_ids)
+            handled: set[int] = set()
+            copied = 0
+            skipped = 0
+
+            for _is_album, group_ids in _group_message_ids(messages):
+                if _deadline_reached(deadline_monotonic):
+                    deadline_hit = True
+                    break
+                try:
+                    copied_count, skipped_count, processed_ids = await _deliver_group(
+                        client=client,
+                        destination_channel_id=settings.destination_channel_id,
+                        source_id=source_id,
+                        messages=messages,
+                        group_ids=list(group_ids),
+                        source_entity_kwargs=source_entity_kwargs,
+                        recent_ids=recent_ids,
+                        recent_set=recent_set,
+                    )
+                except FloodHalt:
+                    # Save progress so the next run resumes above the unhandled IDs,
+                    # and never touch the live cursor.
+                    unhandled = chunk_ids - handled
+                    _set_source_state(state, key, last_seen_id, recent_ids)
+                    _set_date_state(
+                        state,
+                        key,
+                        settings.copy_date,
+                        max_id=(max(unhandled) + 1) if unhandled else max_id,
+                        done=0,
+                        scanned=scanned_total + len(messages),
+                        copied=copied_total + copied,
+                    )
+                    raise
+                except Exception as exc:
+                    # One uncopyable message or protected source must not abandon
+                    # the whole day: keep draining the remaining groups and sources.
+                    error_text = f"{type(exc).__name__}: {exc}"
+                    stats["errors"].setdefault(key, error_text)
+                    source_stats.setdefault("error", error_text)
+                    skipped += len(group_ids)
+                    handled.update(group_ids)
+                    continue
+                copied += copied_count
+                skipped += skipped_count
+                handled.update(processed_ids)
+
+            scanned_total += len(messages)
+            copied_total += copied
+            skipped_total += skipped
+            stats["scanned"] += len(messages)
+            stats["copied"] += copied
+            stats["skipped"] += skipped
+            source_stats["fetched"] = scanned_total
+            source_stats["copied"] = copied_total
+            source_stats["skipped"] = skipped_total
+
+            if deadline_hit:
+                unhandled = chunk_ids - handled
+                max_id = (max(unhandled) + 1) if unhandled else max_id
+                day_done = 0
+            else:
+                max_id = min(chunk_ids) if chunk_ids else max_id
+                day_done = int(chunk_done)
+
+            _set_source_state(state, key, last_seen_id, recent_ids)
+            _set_date_state(
+                state,
+                key,
+                settings.copy_date,
+                max_id=max_id,
+                done=day_done,
+                scanned=scanned_total,
+                copied=copied_total,
+            )
+            if deadline_hit or day_done:
+                break
+
+        if not errored and not day_done and _deadline_reached(deadline_monotonic):
+            # Budget ran out right at the next chunk fetch.
+            deadline_hit = True
+
+        source_stats["fetched"] = scanned_total
+        source_stats["copied"] = copied_total
+        source_stats["skipped"] = skipped_total
+        if errored:
+            continue
+        if day_done:
+            stats["sources_done"] += 1
+            source_stats["status"] = "done"
+        if deadline_hit:
+            stats["deadline_reached"] = 1
+            source_stats["status"] = "deadline"
+            break
+
+    return stats
+
+
+async def _run_full_copy_phase(
+    client: Any,
+    settings: AppwriteSettings,
+    state: dict[str, Any],
+    resolved_source_entities: dict[int, Any],
+    entity_errors: dict[str, str],
+    deadline_monotonic: float,
+) -> dict[str, Any]:
+    """Copy the whole channel history, newest to oldest, in a single execution.
+
+    `_run_backfill_phase` fetches exactly one chunk per source per run, so a
+    5,000-message channel needs 50 scheduled executions. This phase keeps
+    fetching chunks for the same source until the time budget or the start of
+    the channel is reached, which is what "copy everything" actually needs.
+
+    Progress is stored under `copy_all_*` keys so `backfill_*` and `copy_date*`
+    progress is untouched, and the live cursor (`last_id`) is never advanced: the
+    scheduled lookback pass must keep seeing messages this phase skipped.
+    """
+    stats: dict[str, Any] = {
+        "enabled": int(bool(settings.copy_all)),
+        "sources_done": 0,
+        "sources_processed": 0,
+        "copied": 0,
+        "skipped": 0,
+        "scanned": 0,
+        "chunks": 0,
+        "deadline_reached": 0,
+        "reset": 0,
+        "errors": {},
+        "sources": {},
+    }
+    if not settings.copy_all:
+        return stats
+
+    reset_requested = _env_flag("COPY_ALL_RESET")
+
+    for source_id in settings.source_channel_ids:
+        key = str(source_id)
+        source_stats: dict[str, Any] = {
+            "status": "ok",
+            "fetched": 0,
+            "copied": 0,
+            "skipped": 0,
+            "chunks": 0,
+        }
+        stats["sources"][key] = source_stats
+        if key in entity_errors:
+            source_stats["status"] = "entity_error"
+            source_stats["error"] = entity_errors.get(key, "")
+            continue
+        if _deadline_reached(deadline_monotonic):
+            stats["deadline_reached"] = 1
+            source_stats["status"] = "deadline"
+            break
+
+        progress = _get_backfill_state(state, key, prefix="copy_all")
+        if reset_requested:
+            progress = {"max_id": 0, "done": 0, "floor_ms": 0, "scanned": 0, "copied": 0}
+            stats["reset"] = 1
+        if progress["done"]:
+            stats["sources_done"] += 1
+            source_stats["status"] = "already_done"
+            continue
+
+        source_entity = resolved_source_entities.get(source_id, source_id)
+        source_entity_kwargs = (
+            {"source_entity": source_entity} if source_id in resolved_source_entities else {}
+        )
+        max_id = int(progress.get("max_id") or 0)
+        source_scanned = int(progress.get("scanned") or 0)
+        source_copied = int(progress.get("copied") or 0)
+        source_skipped = 0
+        source_done = int(progress.get("done") or 0)
+        deadline_hit = False
+        errored = False
+
+        while not _deadline_reached(deadline_monotonic):
+            try:
+                messages, chunk_done = await _fetch_backfill_chunk(
+                    client=client,
+                    source_id=source_id,
+                    max_id=max_id,
+                    floor_dt=None,
+                    chunk_size=settings.backfill_chunk_size,
+                    **source_entity_kwargs,
+                )
+            except Exception as exc:
+                source_stats["status"] = "error"
+                source_stats["error"] = f"{type(exc).__name__}: {exc}"
+                stats["errors"][key] = source_stats["error"]
+                _set_backfill_state(
+                    state,
+                    key,
+                    max_id=max_id,
+                    done=0,
+                    floor_ms=0,
+                    scanned=source_scanned,
+                    copied=source_copied,
+                    prefix="copy_all",
+                )
+                errored = True
+                break
+
+            if not source_stats.get("chunks"):
+                stats["sources_processed"] += 1
+            stats["chunks"] += 1
+            source_stats["chunks"] = int(source_stats.get("chunks", 0) or 0) + 1
+
+            chunk_ids = {
+                int(getattr(msg, "id", 0)) for msg in messages if int(getattr(msg, "id", 0)) > 0
+            }
+            if not messages:
+                source_done = int(chunk_done)
+                _set_backfill_state(
+                    state,
+                    key,
+                    max_id=max_id,
+                    done=source_done,
+                    floor_ms=0,
+                    scanned=source_scanned,
+                    copied=source_copied,
+                    prefix="copy_all",
+                )
+                break
+
+            last_seen_id, recent_ids = _get_source_state(state, key)
+            recent_set = set(recent_ids)
+            handled: set[int] = set()
+            chunk_copied = 0
+            chunk_skipped = 0
+
+            for _is_album, group_ids in _group_message_ids(messages):
+                if _deadline_reached(deadline_monotonic):
+                    deadline_hit = True
+                    break
+                # IDs delivered before (live pass or an earlier full copy) are
+                # not sent again; they still count as handled so the walk moves on.
+                # COPY_ALL_RESET means "redo the whole channel", so it re-sends
+                # those IDs too (useful when the destination was wiped).
+                message_ids = (
+                    list(group_ids)
+                    if reset_requested
+                    else [mid for mid in group_ids if mid not in recent_set]
+                )
+                handled.update(set(group_ids) - set(message_ids))
+                if not message_ids:
+                    continue
+                try:
+                    copied_count, skipped_count, processed_ids = await _deliver_group(
+                        client=client,
+                        destination_channel_id=settings.destination_channel_id,
+                        source_id=source_id,
+                        messages=messages,
+                        group_ids=list(message_ids),
+                        source_entity_kwargs=source_entity_kwargs,
+                        recent_ids=recent_ids,
+                        recent_set=recent_set,
+                    )
+                except FloodHalt:
+                    unhandled = chunk_ids - handled
+                    _set_source_state(state, key, last_seen_id, recent_ids)
+                    _set_backfill_state(
+                        state,
+                        key,
+                        max_id=(max(unhandled) + 1) if unhandled else max_id,
+                        done=0,
+                        floor_ms=0,
+                        scanned=source_scanned + len(messages),
+                        copied=source_copied + chunk_copied,
+                        prefix="copy_all",
+                    )
+                    raise
+                chunk_copied += copied_count
+                chunk_skipped += skipped_count
+                handled.update(processed_ids)
+
+            source_scanned += len(messages)
+            source_copied += chunk_copied
+            source_skipped += chunk_skipped
+            stats["copied"] += chunk_copied
+            stats["skipped"] += chunk_skipped
+            stats["scanned"] += len(messages)
+
+            if deadline_hit:
+                unhandled = chunk_ids - handled
+                max_id = (max(unhandled) + 1) if unhandled else max_id
+                source_done = 0
+            else:
+                max_id = min(chunk_ids)
+                source_done = int(chunk_done)
+
+            _set_source_state(state, key, last_seen_id, recent_ids)
+            _set_backfill_state(
+                state,
+                key,
+                max_id=max_id,
+                done=source_done,
+                floor_ms=0,
+                scanned=source_scanned,
+                copied=source_copied,
+                prefix="copy_all",
+            )
+            if deadline_hit or source_done:
+                break
+
+        if not errored and not source_done and _deadline_reached(deadline_monotonic):
+            # Budget ran out before (or right at) the next chunk fetch.
+            deadline_hit = True
+
+        source_stats["fetched"] = source_scanned
+        source_stats["copied"] = source_copied
+        source_stats["skipped"] = source_skipped
+        if errored:
+            break
+        if source_done:
+            stats["sources_done"] += 1
+            source_stats["status"] = "done"
+        if deadline_hit:
+            stats["deadline_reached"] = 1
+            source_stats["status"] = "deadline"
+            break
+
+    return stats
+
+
+async def _run_backfill_phase(
+    client: Any,
+    settings: AppwriteSettings,
+    state: dict[str, Any],
+    resolved_source_entities: dict[int, Any],
+    entity_errors: dict[str, str],
+    deadline_monotonic: float,
+) -> dict[str, Any]:
+    """Process one resumable history chunk per source inside the time budget."""
+    stats: dict[str, Any] = {
+        "enabled": 1,
+        "sources_done": 0,
+        "sources_processed": 0,
+        "copied": 0,
+        "skipped": 0,
+        "scanned": 0,
+        "deadline_reached": 0,
+        "reset": 0,
+        "errors": {},
+    }
+    if not settings.backfill_enabled:
+        stats["enabled"] = 0
+        return stats
+
+    force_copy = _force_full_lookback_copy()
+    reset_requested = _env_flag("BACKFILL_RESET")
+
+    for source_id in settings.source_channel_ids:
+        key = str(source_id)
+        if key in entity_errors:
+            continue
+        if _deadline_reached(deadline_monotonic):
+            stats["deadline_reached"] = 1
+            break
+
+        progress = _get_backfill_state(state, key)
+        if reset_requested:
+            progress = {"max_id": 0, "done": 0, "floor_ms": 0, "scanned": 0, "copied": 0}
+            stats["reset"] = 1
+        if progress["done"]:
+            stats["sources_done"] += 1
+            continue
+
+        floor_ms = int(progress.get("floor_ms") or 0) or int(settings.backfill_since_ms)
+        floor_dt = (
+            datetime.fromtimestamp(floor_ms / 1000, tz=timezone.utc) if floor_ms > 0 else None
+        )
+        source_entity = resolved_source_entities.get(source_id, source_id)
+        source_entity_kwargs = (
+            {"source_entity": source_entity} if source_id in resolved_source_entities else {}
+        )
+
+        try:
+            messages, chunk_done = await _fetch_backfill_chunk(
+                client=client,
+                source_id=source_id,
+                max_id=int(progress.get("max_id") or 0),
+                floor_dt=floor_dt,
+                chunk_size=settings.backfill_chunk_size,
+                **source_entity_kwargs,
+            )
+        except Exception as exc:
+            stats["errors"][key] = f"{type(exc).__name__}: {exc}"
+            _set_backfill_state(
+                state,
+                key,
+                max_id=int(progress.get("max_id") or 0),
+                done=0,
+                floor_ms=floor_ms,
+                scanned=int(progress.get("scanned") or 0),
+                copied=int(progress.get("copied") or 0),
+            )
+            continue
+
+        stats["sources_processed"] += 1
+        stats["scanned"] += len(messages)
+        chunk_ids = {
+            int(getattr(msg, "id", 0)) for msg in messages if int(getattr(msg, "id", 0)) > 0
+        }
+
+        if not messages:
+            if chunk_done:
+                stats["sources_done"] += 1
+            _set_backfill_state(
+                state,
+                key,
+                max_id=int(progress.get("max_id") or 0),
+                done=int(chunk_done),
+                floor_ms=floor_ms,
+                scanned=int(progress.get("scanned") or 0),
+                copied=int(progress.get("copied") or 0),
+            )
+            continue
+
+        last_seen_id, recent_ids = _get_source_state(state, key)
+        recent_set = set(recent_ids)
+        cursor_id = last_seen_id
+        handled_ids: set[int] = set()
+        copied = 0
+        skipped = 0
+        deadline_hit = False
+        group_by_id = {int(getattr(msg, "id", 0)): msg for msg in messages}
+
+        for is_album, group_ids in _group_message_ids(messages):
+            if _deadline_reached(deadline_monotonic):
+                deadline_hit = True
+                break
+            message_ids = list(group_ids)
+            if not force_copy:
+                message_ids = [mid for mid in message_ids if mid not in recent_set]
+                # Already-processed IDs count as handled so the chunk cursor still advances.
+                handled_ids.update(set(group_ids) - set(message_ids))
+            if not message_ids:
+                continue
+
+            try:
+                blocked_ad_ids = [
+                    mid
+                    for mid in message_ids
+                    if _should_skip_message_text(
+                        (getattr(group_by_id.get(mid), "message", "") or "").strip()
+                    )
+                ]
+                blocked_gif_ids = [
+                    mid for mid in message_ids if _is_gif_message(group_by_id.get(mid))
+                ]
+                blocked_ids = sorted(set(blocked_ad_ids) | set(blocked_gif_ids))
+                if blocked_ids:
+                    handled_ids.update(blocked_ids)
+                    recent_ids.extend(blocked_ids)
+                    recent_set.update(blocked_ids)
+                    cursor_id = max(cursor_id, max(blocked_ids))
+                    skipped += len(blocked_ids)
+                    message_ids = [mid for mid in message_ids if mid not in set(blocked_ids)]
+                    if not message_ids:
+                        continue
+
+                if is_album:
+                    album_ids = set(message_ids)
+                    album_messages = [
+                        msg for msg in messages if int(getattr(msg, "id", 0)) in album_ids
+                    ]
+                    needs_sanitize = any(
+                        _sanitize_message_text(getattr(msg, "message", None) or "")
+                        != (getattr(msg, "message", "") or "")
+                        for msg in album_messages
+                    )
+                    if needs_sanitize:
+                        for msg in album_messages:
+                            copied_count, skipped_count, _filtered, processed_ids = (
+                                await _copy_single_with_optional_sanitize(
+                                    client=client,
+                                    destination_channel_id=settings.destination_channel_id,
+                                    source_id=source_id,
+                                    message=msg,
+                                    **source_entity_kwargs,
+                                )
+                            )
+                            copied += copied_count
+                            skipped += skipped_count
+                            if processed_ids:
+                                handled_ids.update(processed_ids)
+                                recent_ids.extend(processed_ids)
+                                recent_set.update(processed_ids)
+                                cursor_id = max(cursor_id, max(processed_ids))
+                    else:
+                        copied_count, skipped_count, processed_ids = await _forward_with_fallback(
+                            client=client,
+                            destination_channel_id=settings.destination_channel_id,
+                            source_id=source_id,
+                            message_ids=message_ids,
+                            as_album=len(message_ids) > 1,
+                            **source_entity_kwargs,
+                        )
+                        copied += copied_count
+                        skipped += skipped_count
+                        if processed_ids:
+                            handled_ids.update(processed_ids)
+                            recent_ids.extend(processed_ids)
+                            recent_set.update(processed_ids)
+                            cursor_id = max(cursor_id, max(processed_ids))
+                else:
+                    single_message = group_by_id.get(message_ids[0])
+                    if single_message is None:
+                        handled_ids.update(message_ids)
+                        continue
+                    copied_count, skipped_count, _filtered, processed_ids = (
+                        await _copy_single_with_optional_sanitize(
+                            client=client,
+                            destination_channel_id=settings.destination_channel_id,
+                            source_id=source_id,
+                            message=single_message,
+                            **source_entity_kwargs,
+                        )
+                    )
+                    copied += copied_count
+                    skipped += skipped_count
+                    if processed_ids:
+                        handled_ids.update(processed_ids)
+                        recent_ids.extend(processed_ids)
+                        recent_set.update(processed_ids)
+                        cursor_id = max(cursor_id, max(processed_ids))
+            except FloodHalt:
+                # Keep handled IDs so the next run resumes without re-copying them.
+                # Never advance the live cursor here: backfill must not make the
+                # normal lookback path skip messages it has not reached yet.
+                _set_source_state(state, key, last_seen_id, recent_ids)
+                _set_backfill_state(
+                    state,
+                    key,
+                    max_id=int(progress.get("max_id") or 0),
+                    done=0,
+                    floor_ms=floor_ms,
+                    scanned=int(progress.get("scanned") or 0) + len(messages),
+                    copied=int(progress.get("copied") or 0) + copied,
+                )
+                _set_run_meta(
+                    state,
+                    status="halted",
+                    halted_at_ist=_now_ist_iso(),
+                    halted_at_utc=_now_utc_iso(),
+                    fetched=int(progress.get("scanned") or 0) + len(messages),
+                    copied=int(progress.get("copied") or 0) + copied,
+                )
+                raise
+
+        stats["copied"] += copied
+        stats["skipped"] += skipped
+
+        unhandled_ids = chunk_ids - handled_ids
+        if unhandled_ids and not deadline_hit:
+            # Safety: never stall the cursor on IDs the loop could not classify.
+            handled_ids.update(unhandled_ids)
+            unhandled_ids = set()
+
+        if unhandled_ids:
+            next_max_id = max(unhandled_ids) + 1
+            next_done = 0
+        else:
+            next_max_id = min(chunk_ids)
+            next_done = int(chunk_done)
+
+        _set_source_state(state, key, last_seen_id, recent_ids)
+        _set_backfill_state(
+            state,
+            key,
+            max_id=next_max_id,
+            done=next_done,
+            floor_ms=floor_ms,
+            scanned=int(progress.get("scanned") or 0) + len(messages),
+            copied=int(progress.get("copied") or 0) + copied,
+        )
+        if next_done:
+            stats["sources_done"] += 1
+        if deadline_hit:
+            stats["deadline_reached"] = 1
+            break
+
+    return stats
+
+
 async def _copy_source_messages(client: Any, settings: AppwriteSettings) -> dict[str, Any]:
     copied_total = 0
     skipped_invalid_total = 0
@@ -1538,9 +2714,122 @@ async def _copy_source_messages(client: Any, settings: AppwriteSettings) -> dict
 
     cutoff_dt = datetime.now(timezone.utc) - timedelta(minutes=settings.lookback_minutes)
     source_run_stats: dict[str, dict[str, Any]] = {}
+    run_deadline = _run_deadline_monotonic(settings.backfill_time_budget_seconds)
+    run_deadline_hit = False
+    backfill_stats: dict[str, Any] = {"enabled": int(settings.backfill_enabled)}
+    date_stats: dict[str, Any] = {
+        "enabled": int(bool(settings.copy_date)),
+        "copied": 0,
+        "skipped": 0,
+        "scanned": 0,
+        "sources_done": 0,
+        "sources_processed": 0,
+        "deadline_reached": 0,
+        "errors": {},
+        "sources": {},
+    }
+    if settings.copy_date:
+        # Date-only mode: replay exactly one IST calendar day and skip the live
+        # lookback pass, which can only ever see `LOOKBACK_MINUTES` of history.
+        try:
+            date_stats = await _run_date_phase(
+                client=client,
+                settings=settings,
+                state=state,
+                resolved_source_entities=resolved_source_entities,
+                entity_errors=entity_errors,
+                deadline_monotonic=run_deadline,
+            )
+        except FloodHalt as halt:
+            date_stats = {
+                "enabled": 1,
+                "halted": 1,
+                "flood_wait_seconds": int(halt.seconds),
+                "copied": int(halt.copied),
+                "skipped": int(halt.skipped),
+                "scanned": 0,
+                "sources_done": 0,
+                "sources_processed": 0,
+                "deadline_reached": 0,
+                "errors": {},
+                "sources": {},
+            }
+        except Exception as exc:
+            # A date-phase failure must not hide the state saved above.
+            date_stats = {
+                "enabled": 1,
+                "copied": 0,
+                "skipped": 0,
+                "scanned": 0,
+                "sources_done": 0,
+                "sources_processed": 0,
+                "deadline_reached": 0,
+                "errors": {"copy_date": f"{type(exc).__name__}: {exc}"},
+                "sources": {},
+            }
 
-    for source_id in settings.source_channel_ids:
+    copy_all_stats: dict[str, Any] = {
+        "enabled": int(settings.copy_all),
+        "copied": 0,
+        "skipped": 0,
+        "scanned": 0,
+        "chunks": 0,
+        "sources_done": 0,
+        "sources_processed": 0,
+        "deadline_reached": 0,
+        "errors": {},
+        "sources": {},
+    }
+    if settings.copy_all:
+        # Full-history mode: never run the lookback pass, which only sees
+        # `LOOKBACK_MINUTES` and would waste the run budget on recent messages.
+        try:
+            copy_all_stats = await _run_full_copy_phase(
+                client=client,
+                settings=settings,
+                state=state,
+                resolved_source_entities=resolved_source_entities,
+                entity_errors=entity_errors,
+                deadline_monotonic=run_deadline,
+            )
+        except FloodHalt as halt:
+            copy_all_stats = {
+                "enabled": 1,
+                "halted": 1,
+                "flood_wait_seconds": int(halt.seconds),
+                "copied": int(halt.copied),
+                "skipped": int(halt.skipped),
+                "scanned": 0,
+                "chunks": 0,
+                "sources_done": 0,
+                "sources_processed": 0,
+                "deadline_reached": 0,
+                "errors": {},
+                "sources": {},
+            }
+        except Exception as exc:
+            # A full-copy failure must not hide the state saved above.
+            copy_all_stats = {
+                "enabled": 1,
+                "copied": 0,
+                "skipped": 0,
+                "scanned": 0,
+                "chunks": 0,
+                "sources_done": 0,
+                "sources_processed": 0,
+                "deadline_reached": 0,
+                "errors": {"copy_all": f"{type(exc).__name__}: {exc}"},
+                "sources": {},
+            }
+
+    live_source_ids: tuple[int, ...] = ()
+    if not (settings.copy_date or settings.copy_all):
+        live_source_ids = _rotated_live_source_ids(state, settings.source_channel_ids)
+    for source_id in live_source_ids:
         key = str(source_id)
+        if _deadline_reached(run_deadline):
+            run_deadline_hit = True
+            break
         counters_before = (
             copied_total,
             fetched_total,
@@ -1613,6 +2902,9 @@ async def _copy_source_messages(client: Any, settings: AppwriteSettings) -> dict
             sources_with_new_messages += 1
 
             for is_album, message_ids in _group_message_ids(messages):
+                if _deadline_reached(run_deadline):
+                    run_deadline_hit = True
+                    break
                 original_group_ids = list(message_ids)
                 # Prevent re-copy loops: process only new IDs for this source cursor.
                 # Snapshot recovery still works for missed IDs that are newer than last_seen_id.
@@ -1930,8 +3222,103 @@ async def _copy_source_messages(client: Any, settings: AppwriteSettings) -> dict
             if isinstance(source_entry, dict):
                 source_stats["cursor_id"] = int(source_entry.get("last_id", 0) or 0)
 
+        if run_deadline_hit:
+            break
+
+    if (
+        settings.backfill_enabled
+        and not settings.copy_date
+        and not settings.copy_all
+        and not run_deadline_hit
+    ):
+        try:
+            backfill_stats = await _run_backfill_phase(
+                client=client,
+                settings=settings,
+                state=state,
+                resolved_source_entities=resolved_source_entities,
+                entity_errors=entity_errors,
+                deadline_monotonic=run_deadline,
+            )
+        except FloodHalt as halt:
+            backfill_stats = {
+                "enabled": 1,
+                "halted": 1,
+                "flood_wait_seconds": int(halt.seconds),
+                "sources_done": 0,
+                "sources_processed": 0,
+                "copied": int(halt.copied),
+                "skipped": int(halt.skipped),
+                "scanned": 0,
+                "deadline_reached": 0,
+                "errors": {},
+            }
+        except Exception as exc:
+            # Backfill failures must not lose the live-run progress saved below.
+            backfill_stats = {
+                "enabled": 1,
+                "sources_done": 0,
+                "sources_processed": 0,
+                "copied": 0,
+                "skipped": 0,
+                "scanned": 0,
+                "deadline_reached": 0,
+                "errors": {"backfill": f"{type(exc).__name__}: {exc}"},
+            }
+        backfill_errors = backfill_stats.get("errors") or {}
+        if isinstance(backfill_errors, dict):
+            for error_key, error_text in backfill_errors.items():
+                source_errors.setdefault(str(error_key), str(error_text))
+        backfill_copied = int(backfill_stats.get("copied") or 0)
+        backfill_skipped = int(backfill_stats.get("skipped") or 0)
+        backfill_scanned = int(backfill_stats.get("scanned") or 0)
+        copied_total += backfill_copied
+        skipped_invalid_total += backfill_skipped
+        skipped_invalid_runtime_total += backfill_skipped
+        fetched_total += backfill_scanned
+
+    for source_key, source_item in (copy_all_stats.get("sources") or {}).items():
+        source_run_stats.setdefault(str(source_key), source_item)
+    if copy_all_stats.get("enabled"):
+        copied_total += int(copy_all_stats.get("copied") or 0)
+        skipped_invalid_total += int(copy_all_stats.get("skipped") or 0)
+        skipped_invalid_runtime_total += int(copy_all_stats.get("skipped") or 0)
+        fetched_total += int(copy_all_stats.get("scanned") or 0)
+        copy_all_errors = copy_all_stats.get("errors") or {}
+        if isinstance(copy_all_errors, dict):
+            for error_key, error_text in copy_all_errors.items():
+                source_errors.setdefault(str(error_key), str(error_text))
+    for source_key, source_item in (date_stats.get("sources") or {}).items():
+        source_run_stats.setdefault(str(source_key), source_item)
+    if date_stats.get("enabled"):
+        copied_total += int(date_stats.get("copied") or 0)
+        skipped_invalid_total += int(date_stats.get("skipped") or 0)
+        skipped_invalid_runtime_total += int(date_stats.get("skipped") or 0)
+        fetched_total += int(date_stats.get("scanned") or 0)
+        date_errors = date_stats.get("errors") or {}
+        if isinstance(date_errors, dict):
+            for error_key, error_text in date_errors.items():
+                source_errors.setdefault(str(error_key), str(error_text))
+    run_partial = int(
+        bool(
+            run_deadline_hit
+            or backfill_stats.get("deadline_reached")
+            or date_stats.get("deadline_reached")
+            or copy_all_stats.get("deadline_reached")
+        )
+    )
+
     if changed:
-        run_status = "completed_with_errors" if source_errors else "completed"
+        if (
+            backfill_stats.get("halted")
+            or date_stats.get("halted")
+            or copy_all_stats.get("halted")
+        ):
+            run_status = "halted"
+        elif run_partial:
+            run_status = "partial"
+        else:
+            run_status = "completed_with_errors" if source_errors else "completed"
         _set_run_meta(
             state,
             status=run_status,
@@ -1943,11 +3330,32 @@ async def _copy_source_messages(client: Any, settings: AppwriteSettings) -> dict
             fetched=fetched_total,
             sources_with_new_messages=sources_with_new_messages,
             source_errors=source_errors,
+            partial=run_partial,
+            deadline_reached=run_partial,
+            backfill_enabled=int(settings.backfill_enabled),
+            backfill_sources_done=int(backfill_stats.get("sources_done") or 0),
+            backfill_copied=int(backfill_stats.get("copied") or 0),
+            backfill_scanned=int(backfill_stats.get("scanned") or 0),
+            copy_date=settings.copy_date,
+            copy_date_copied=int(date_stats.get("copied") or 0),
+            copy_date_sources_done=int(date_stats.get("sources_done") or 0),
+            copy_all=int(settings.copy_all),
+            copy_all_copied=int(copy_all_stats.get("copied") or 0),
+            copy_all_sources_done=int(copy_all_stats.get("sources_done") or 0),
         )
         state_message_id, did_update = await _save_state(client=client, state=state, state_message_id=state_message_id)
         state_updated = state_updated or did_update
     else:
-        run_status = "completed_with_errors" if source_errors else "completed"
+        if (
+            backfill_stats.get("halted")
+            or date_stats.get("halted")
+            or copy_all_stats.get("halted")
+        ):
+            run_status = "halted"
+        elif run_partial:
+            run_status = "partial"
+        else:
+            run_status = "completed_with_errors" if source_errors else "completed"
 
     run_snapshot_ids = await _save_run_window_ids(
         client=client,
@@ -1969,6 +3377,47 @@ async def _copy_source_messages(client: Any, settings: AppwriteSettings) -> dict
         "fetched": fetched_total,
         "sources_with_new_messages": sources_with_new_messages,
         "sources": len(settings.source_channel_ids),
+        "partial": run_partial,
+        "deadline_reached": run_partial,
+        "time_budget_seconds": int(settings.backfill_time_budget_seconds),
+        "backfill_enabled": int(settings.backfill_enabled),
+        "backfill_sources_done": int(backfill_stats.get("sources_done") or 0),
+        "backfill_sources_processed": int(backfill_stats.get("sources_processed") or 0),
+        "backfill_copied": int(backfill_stats.get("copied") or 0),
+        "backfill_scanned": int(backfill_stats.get("scanned") or 0),
+        "copy_date": settings.copy_date,
+        "copy_date_enabled": int(date_stats.get("enabled") or 0),
+        "copy_date_copied": int(date_stats.get("copied") or 0),
+        "copy_date_scanned": int(date_stats.get("scanned") or 0),
+        "copy_date_sources_done": int(date_stats.get("sources_done") or 0),
+        "copy_date_sources_processed": int(date_stats.get("sources_processed") or 0),
+        "copy_date_chunks": int(date_stats.get("chunks") or 0),
+        "copy_date_reset": int(date_stats.get("reset") or 0),
+        "copy_all": int(settings.copy_all),
+        "copy_all_enabled": int(copy_all_stats.get("enabled") or 0),
+        "copy_all_copied": int(copy_all_stats.get("copied") or 0),
+        "copy_all_scanned": int(copy_all_stats.get("scanned") or 0),
+        "copy_all_chunks": int(copy_all_stats.get("chunks") or 0),
+        "copy_all_sources_done": int(copy_all_stats.get("sources_done") or 0),
+        "copy_all_sources_processed": int(copy_all_stats.get("sources_processed") or 0),
+        "copy_all_reset": int(copy_all_stats.get("reset") or 0),
+        **(
+            {
+                "halted": 1,
+                "flood_wait_seconds": int(
+                    backfill_stats.get("flood_wait_seconds")
+                    or date_stats.get("flood_wait_seconds")
+                    or copy_all_stats.get("flood_wait_seconds")
+                    or 0
+                ),
+            }
+            if (
+                backfill_stats.get("halted")
+                or date_stats.get("halted")
+                or copy_all_stats.get("halted")
+            )
+            else {}
+        ),
         "source_errors_count": len(source_errors),
         "source_errors": source_errors,
         "state_saved": int(state_updated),
@@ -1994,6 +3443,7 @@ async def _copy_single_with_optional_sanitize(
     message: Any,
     source_entity: Any | None = None,
 ) -> tuple[int, int, int, tuple[int, ...]]:
+    from telethon.errors.rpcerrorlist import ChatForwardsRestrictedError
     from telethon.errors.rpcerrorlist import FloodWaitError
 
     message_id = int(getattr(message, "id", 0))
@@ -2010,11 +3460,15 @@ async def _copy_single_with_optional_sanitize(
     if is_sanitized:
         try:
             if has_media:
-                await client.send_file(
-                    entity=destination_channel_id,
-                    file=message.media,
-                    caption=cleaned_text or None,
-                )
+                try:
+                    await _send_media_with_restriction_fallback(
+                        client=client,
+                        destination_channel_id=destination_channel_id,
+                        message=message,
+                        caption=cleaned_text or None,
+                    )
+                except ChatForwardsRestrictedError:
+                    return 0, 1, 0, (message_id,)
                 return 1, 0, 1, (message_id,)
 
             if cleaned_text:
@@ -2146,6 +3600,71 @@ async def _forward_with_fallback(
         return 0, len(message_ids), tuple(message_ids)
 
 
+# Media from a protected ("no-forward") chat can only be copied by re-uploading
+# freshly downloaded bytes. Anything larger is skipped rather than buffered in
+# the function's memory.
+RESTRICTED_MEDIA_FALLBACK_MAX_BYTES = 20 * 1024 * 1024
+
+
+async def _send_media_with_restriction_fallback(
+    client: Any,
+    destination_channel_id: int,
+    message: Any,
+    caption: str | None,
+    entities: Any = None,
+) -> None:
+    """Send one message's media, working around protected-chat restrictions.
+
+    Passing `message.media` through keeps the file reference of the chat it came
+    from, so Telegram answers `ChatForwardsRestrictedError` for channels with
+    forwarding disabled (caused by SendMediaRequest). The retry uploads bytes
+    downloaded from the source, which is the only way such media can be copied.
+    """
+    from telethon.errors.rpcerrorlist import ChatForwardsRestrictedError
+    from telethon.errors.rpcerrorlist import MediaCaptionTooLongError
+
+    restricted_exc: Exception | None = None
+
+    send_kwargs: dict[str, Any] = {
+        "entity": destination_channel_id,
+        "file": message.media,
+        "caption": caption,
+    }
+    if entities:
+        send_kwargs["formatting_entities"] = entities
+    try:
+        await client.send_file(**send_kwargs)
+        return
+    except ChatForwardsRestrictedError as exc:
+        restricted_exc = exc
+    except MediaCaptionTooLongError:
+        # Telegram caps captions at 200 characters for send_file – truncate and retry.
+        if caption and len(caption) > 200:
+            caption = caption[:197] + "..."
+            send_kwargs["caption"] = caption
+            try:
+                await client.send_file(**send_kwargs)
+                return
+            except Exception:
+                pass  # fall through to the byte‑based fallback below
+
+    media_size = int(getattr(getattr(message, "file", None), "size", 0) or 0)
+    if media_size > RESTRICTED_MEDIA_FALLBACK_MAX_BYTES:
+        if restricted_exc is not None:
+            raise restricted_exc
+    media_bytes = await client.download_media(message, file=bytes)
+    if not media_bytes:
+        if restricted_exc is not None:
+            raise restricted_exc
+    # If the caption is still too long after the first retry, truncate it again.
+    if caption and len(caption) > 200:
+        caption = caption[:197] + "..."
+        send_kwargs["caption"] = caption
+    retry_kwargs = dict(send_kwargs)
+    retry_kwargs["file"] = media_bytes
+    await client.send_file(**retry_kwargs)
+
+
 async def _repost_messages_without_forward(
     client: Any,
     destination_channel_id: int,
@@ -2153,6 +3672,7 @@ async def _repost_messages_without_forward(
     message_ids: list[int],
     source_entity: Any | None = None,
 ) -> tuple[int, int, tuple[int, ...]]:
+    from telethon.errors.rpcerrorlist import ChatForwardsRestrictedError
     from telethon.errors.rpcerrorlist import FloodWaitError
 
     fetched = await client.get_messages(source_entity if source_entity is not None else source_id, ids=message_ids)
@@ -2205,14 +3725,13 @@ async def _repost_messages_without_forward(
         media_kind = _sendable_media_kind(msg)
         try:
             if media_kind:
-                send_file_kwargs = {
-                    "entity": destination_channel_id,
-                    "file": msg.media,
-                    "caption": cleaned_text or None,
-                }
-                if entities:
-                    send_file_kwargs["formatting_entities"] = entities
-                await client.send_file(**send_file_kwargs)
+                await _send_media_with_restriction_fallback(
+                    client=client,
+                    destination_channel_id=destination_channel_id,
+                    message=msg,
+                    caption=cleaned_text or None,
+                    entities=entities,
+                )
                 copied += 1
                 processed.append(int(mid))
                 continue
@@ -2239,6 +3758,11 @@ async def _repost_messages_without_forward(
                 copied=copied,
                 skipped=skipped,
             ) from inner_exc
+        except ChatForwardsRestrictedError:
+            # Protected media that cannot be re-uploaded either (too large or
+            # download-blocked): skip this item instead of failing the source.
+            skipped += 1
+            processed.append(int(mid))
 
     return copied, skipped, tuple(processed)
 
@@ -2283,6 +3807,113 @@ def _run_once_sync(settings: AppwriteSettings) -> dict[str, Any]:
         return future.result()
 
 
+def _auto_continue_enabled() -> bool:
+    raw = (os.getenv("AUTO_CONTINUE") or "").strip().lower()
+    if not raw:
+        return True
+    return raw in {"1", "true", "yes", "on"}
+
+
+def _auto_continue_max_runs() -> int:
+    raw = (os.getenv("AUTO_CONTINUE_MAX_RUNS") or "").strip()
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        return AUTO_CONTINUE_DEFAULT_MAX_RUNS
+    return max(1, min(50, value))
+
+
+def _request_chain_depth(context: Any) -> int:
+    """Depth of the auto-continue chain that triggered this execution (0 = first)."""
+    body = getattr(getattr(context, "req", None), "body", None)
+    if isinstance(body, (bytes, bytearray)):
+        try:
+            body = body.decode("utf-8")
+        except UnicodeDecodeError:
+            return 0
+    payload: Any = body
+    if isinstance(body, str):
+        text = body.strip()
+        if not text:
+            return 0
+        try:
+            payload = json.loads(text)
+        except json.JSONDecodeError:
+            return 0
+    if not isinstance(payload, dict):
+        return 0
+    try:
+        return max(0, int(payload.get("chain") or 0))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _spawn_followup_execution(chain: int) -> tuple[bool, str]:
+    """Queue one more asynchronous execution of this function.
+
+    Uses the function's own ephemeral API key (`APPWRITE_FUNCTION_API_KEY`),
+    which needs the `executions.write` scope. Best effort: a failure here never
+    affects the copy that just finished.
+    """
+    import urllib.error
+    import urllib.request
+
+    endpoint = (_appwrite_endpoint() or "").rstrip("/")
+    project_id = _appwrite_project_id()
+    api_key = _appwrite_api_key()
+    if not endpoint or not project_id or not api_key:
+        return False, "missing endpoint/project/api key; will use the hourly schedule instead"
+
+    function_id = (os.getenv("APPWRITE_FUNCTION_ID") or "").strip() or "telegram-copier-webhook"
+    payload = json.dumps(
+        {
+            "async": True,
+            "method": "POST",
+            "path": "/",
+            "body": json.dumps({"source": "auto_continue", "chain": int(chain)}),
+        }
+    ).encode("utf-8")
+    request = urllib.request.Request(
+        f"{endpoint}/functions/{function_id}/executions",
+        data=payload,
+        method="POST",
+        headers={
+            "X-Appwrite-Project": project_id,
+            "X-Appwrite-Key": api_key,
+            "Content-Type": "application/json",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            data = json.loads(response.read().decode("utf-8") or "{}")
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", "replace")[:300]
+        return False, f"HTTP {exc.code}: {detail}"
+    except Exception as exc:  # noqa: BLE001 - never fail a copy run over the chain
+        return False, f"{type(exc).__name__}: {exc}"
+    return True, str(data.get("$id") or "")
+
+
+def _maybe_continue_run(result: dict[str, Any], chain: int) -> tuple[bool, str, str]:
+    """Queue the next run when this one stopped on its budget.
+
+    Returns `(queued, execution_id, note)`.
+    """
+    if not _auto_continue_enabled():
+        return False, "", "AUTO_CONTINUE is off"
+    if result.get("halted"):
+        return False, "", "run halted on flood wait; the hourly run resumes it"
+    if not result.get("partial"):
+        return False, "", "run finished without hitting the budget"
+    limit = _auto_continue_max_runs()
+    if chain + 1 >= limit:
+        return False, "", f"chain limit AUTO_CONTINUE_MAX_RUNS={limit} reached; hourly run resumes"
+    queued, detail = _spawn_followup_execution(chain + 1)
+    if not queued:
+        return False, "", detail
+    return True, detail, f"queued follow-up run chain={chain + 1}"
+
+
 def main(context: Any):
     _safe_log(context, "User sync execution started.")
     try:
@@ -2293,6 +3924,12 @@ def main(context: Any):
             f"(sources={len(settings.source_channel_ids)}, destination={settings.destination_channel_id})",
         )
         result = _run_once_sync(settings)
+        chain_depth = _request_chain_depth(context)
+        continued, next_execution_id, continue_note = _maybe_continue_run(result, chain_depth)
+        result["chain_depth"] = chain_depth
+        result["continued"] = int(continued)
+        result["next_execution_id"] = next_execution_id
+        result["auto_continue_note"] = continue_note
         _safe_log(
             context,
             "Sync completed successfully: "
@@ -2310,6 +3947,20 @@ def main(context: Any):
             f"source_errors_count={result.get('source_errors_count', 0)}, "
             f"halted={result.get('halted', 0)}, "
             f"flood_wait_seconds={result.get('flood_wait_seconds', 0)}, "
+            f"partial={result.get('partial', 0)}, "
+            f"backfill_enabled={result.get('backfill_enabled', 0)}, "
+            f"backfill_copied={result.get('backfill_copied', 0)}, "
+            f"backfill_scanned={result.get('backfill_scanned', 0)}, "
+            f"backfill_sources_done={result.get('backfill_sources_done', 0)}, "
+            f"copy_date={result.get('copy_date') or '-'}, "
+            f"copy_date_copied={result.get('copy_date_copied', 0)}, "
+            f"copy_date_scanned={result.get('copy_date_scanned', 0)}, "
+            f"copy_date_sources_done={result.get('copy_date_sources_done', 0)}, "
+            f"copy_all={result.get('copy_all', 0)}, "
+            f"copy_all_copied={result.get('copy_all_copied', 0)}, "
+            f"copy_all_scanned={result.get('copy_all_scanned', 0)}, "
+            f"copy_all_chunks={result.get('copy_all_chunks', 0)}, "
+            f"copy_all_sources_done={result.get('copy_all_sources_done', 0)}, "
             f"state_saved={result.get('state_saved', 0)}, "
             f"state_backend={result.get('state_backend')}, "
             f"db_logging_enabled={result.get('db_logging_enabled', 0)}, "
@@ -2321,6 +3972,10 @@ def main(context: Any):
             f"appwrite_state_collection_id={result.get('appwrite_state_collection_id')}, "
             f"run_snapshot_count={result.get('run_snapshot_count', 0)}, "
             f"updated_sources={len(result.get('updated_sources', []))}, "
+            f"chain_depth={result.get('chain_depth', 0)}, "
+            f"continued={result.get('continued', 0)}, "
+            f"next_execution_id={result.get('next_execution_id') or '-'}, "
+            f"auto_continue_note={result.get('auto_continue_note')}, "
             f"state_message_id={result.get('state_message_id')}",
         )
         if result.get("db_log_last_error"):

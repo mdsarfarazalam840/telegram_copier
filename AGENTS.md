@@ -21,6 +21,11 @@
 - `sources.<channel_id>.recent` (last processed IDs window)
 - `sources.<channel_id>.updated_at_ist` (primary timestamp)
 - `sources.<channel_id>.updated_at_utc` (legacy compatibility)
+- Backfill progress lives on the same source entry:
+  - `backfill_max_id` (next fetch upper bound; `0` = start at newest)
+  - `backfill_done` (`1` when the source history floor is reached)
+  - `backfill_floor_ms` (resolved oldest timestamp, persisted on first run)
+  - `backfill_scanned`, `backfill_copied`, `backfill_updated_at_ist`
 - `meta.last_run_ts_ms`
 - `meta.last_run_at_ist` (primary timestamp)
 - `meta.last_run_at_utc` (legacy compatibility)
@@ -31,9 +36,11 @@
 - Dedupe:
   - Skip already processed IDs (`recent`) and older IDs (`last_id`).
   - `FORCE_FULL_LOOKBACK_COPY=1` bypasses both guards: each run copies ALL messages in the lookback window regardless of cursor/recent state (ad/GIF blocking still applies). Use for manual backfill/resync; leave off for normal scheduled runs to avoid duplicates.
-- Lookback:
-  - Controlled by `LOOKBACK_MINUTES` (default 60).
-  - Source fetch is strict time-window based (last `LOOKBACK_MINUTES` by message timestamp) for coverage/snapshoting.
+- Live fetch (default hourly mode):
+  - With a stored cursor the fetch is `iter_messages(min_id=last_id, reverse=True, limit=LIVE_FETCH_CEILING)`: oldest-first, no time window, so a 1,000- or 5,000-message backlog is drained across runs instead of being dropped.
+  - `LOOKBACK_MINUTES` (default 60) applies only when a source has no cursor yet (first run) and to snapshot lookup.
+  - `LIVE_FETCH_CEILING` (5000) bounds one source's fetch per run; the cursor only advances past delivered messages, so the next run resumes exactly where the budget stopped.
+  - Sources rotate round-robin (`meta.next_source_index`) so one busy channel cannot consume every run's budget.
   - Forward/repost processing is gated by source cursor (`last_id`) and recent dedupe to prevent duplicate pushes.
   - Processing set is built from:
     - live fetch from source channels for lookback window, plus
@@ -41,6 +48,10 @@
   - This recovery merge reduces risk of missing messages between runs.
   - Cursor self-heal:
     - If source cursor is ahead of all fetched IDs for a run, cursor gating is temporarily relaxed for that source in that run (still deduped by `recent`) to restore flow.
+- Auto-continue:
+  - A run that ends with `partial=1` queues the next asynchronous execution (`AUTO_CONTINUE=1`, default), capped at `AUTO_CONTINUE_MAX_RUNS` (default 10, ≈40 min).
+  - Requires the `executions.write` function scope; the request uses the function's own ephemeral key (`APPWRITE_FUNCTION_API_KEY`) against `APPWRITE_FUNCTION_API_ENDPOINT` and `APPWRITE_FUNCTION_ID` (default `telegram-copier-webhook`).
+  - Skipped on flood halt and at the chain cap; the hourly schedule resumes. Chaining failures never fail the copy run (`continued=0` + `auto_continue_note`).
 - Flood wait:
   - Halts gracefully and returns `flood_wait_seconds` + `halted=1`.
 - Protected/forward-restricted chats:
@@ -74,6 +85,14 @@
 - `LIMIT_PER_SOURCE` (1..200)
 - `LOOKBACK_MINUTES` (1..1440)
 - `FORCE_FULL_LOOKBACK_COPY` (optional; `1` copies everything in the lookback window each run, ignoring cursor + recent dedup)
+- `BACKFILL_ENABLED` (optional; `1` enables resumable history backfill older than the lookback window)
+- `BACKFILL_SINCE_IST` (optional; oldest date to backfill, e.g. `2026-11-08` or `2026-11-08 22:00`)
+- `BACKFILL_DAYS` (optional, default `2`; backfill floor in days when `BACKFILL_SINCE_IST` is blank; `0` = full history)
+- `BACKFILL_CHUNK_SIZE` (optional, default `100`, max `1000`; messages fetched per source per run)
+- `RUN_TIME_BUDGET_SECONDS` (optional, default `240`, range `30..280`; stops before the 300 s function timeout)
+- `AUTO_CONTINUE` (optional, default `1`; a budget-stopped run queues the next execution)
+- `AUTO_CONTINUE_MAX_RUNS` (optional, default `10`, range `1..50`; chain cap)
+- `BACKFILL_RESET` (optional; `1` clears stored backfill progress for one run)
 - `BLOCK_FOOTER_AD_MESSAGES` (optional; default `1` skips messages that are only ad-footer content)
 - `BLOCK_ANY_FOOTER_AD_MESSAGE` (optional; `1` skips any message containing an ad-footer signature)
 - `BLOCK_GENERIC_AD_WORD` (optional; `1` enables standalone `ad` blocking)
@@ -112,9 +131,10 @@
 - Added `FORCE_FULL_LOOKBACK_COPY=1` to copy every message in the lookback window on a run, bypassing both the cursor gate and the recent-processed dedup (ad/GIF blocking still applies). Use for manual backfill/resync; turn off for normal scheduled runs.
 - Added promotional/ad footer signature stripping: banned ad words + attached Telegram links (e.g. `18+ BACK-UP🔞` with `t.me/backupx08`) are dropped from copied text, and pure ad-footer messages are skipped. Added `BLOCK_ANY_FOOTER_AD_MESSAGE=1` to skip any message containing a footer signature.
 - Preserved normal Telegram links by default (strip only via `STRIP_T_LINKS=1`) while still removing ad-footer links.
+- Added resumable history backfill (`BACKFILL_ENABLED`) beyond the 24-hour `LOOKBACK_MINUTES` cap. Each source keeps a `backfill_max_id` cursor and is processed newest-to-oldest in chunks. Backfill never advances the live cursor. `RUN_TIME_BUDGET_SECONDS` stops a run before the 300 s function timeout and the next execution resumes from the stored cursor. `BACKFILL_SINCE_IST` / `BACKFILL_DAYS` set the floor, and `BACKFILL_RESET=1` restarts progress.
 
 ## Deployment Status
-- As of 2026-02-24: code updated locally in workspace, tests passing.
+- As of 2026-11-09: resumable backfill (`BACKFILL_ENABLED`) and `RUN_TIME_BUDGET_SECONDS` added; tests passing (`python -m pytest -q`, 108 passed).
 - Deployment from this workspace is pending (run `appwrite push functions` to publish).
 
 ## Appwrite 2.x Platform Notes

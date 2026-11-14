@@ -50,6 +50,16 @@ def clear_env(monkeypatch: pytest.MonkeyPatch) -> None:
         "SOURCE_CHANNEL_USERNAMES",
         "DESTINATION_CHANNEL_ID",
         "LIMIT_PER_SOURCE",
+        "BACKFILL_ENABLED",
+        "BACKFILL_SINCE_IST",
+        "BACKFILL_DAYS",
+        "BACKFILL_CHUNK_SIZE",
+        "BACKFILL_RESET",
+        "RUN_TIME_BUDGET_SECONDS",
+        "COPY_DATE",
+        "COPY_DATE_RESET",
+        "COPY_ALL",
+        "COPY_ALL_RESET",
     ):
         monkeypatch.delenv(key, raising=False)
 
@@ -288,7 +298,40 @@ def test_load_state_does_not_use_telegram_fallback_by_default() -> None:
     assert state_id is None
 
 
-def test_fetch_recent_messages_respects_cutoff_not_last_seen() -> None:
+def test_fetch_recent_messages_drains_everything_after_cursor() -> None:
+    module = load_module()
+    now = datetime.now(timezone.utc)
+    calls: dict = {}
+
+    class FakeClient:
+        async def iter_messages(self, entity, **kwargs):  # noqa: ANN001, ANN003
+            calls["entity"] = entity
+            calls.update(kwargs)
+            # Oldest-first cursor drain: messages far outside LOOKBACK_MINUTES
+            # are still returned, so a large backlog is never dropped.
+            yield SimpleNamespace(id=101, date=now - timedelta(days=4))
+            yield SimpleNamespace(id=102, date=now - timedelta(days=3))
+            yield SimpleNamespace(id=103, date=now - timedelta(days=2))
+
+    result = asyncio.run(
+        module._fetch_recent_messages(
+            client=FakeClient(),
+            source_id=-1001,
+            last_seen_id=100,
+            cutoff_dt=now - timedelta(minutes=60),
+        )
+    )
+
+    assert calls == {
+        "entity": -1001,
+        "min_id": 100,
+        "reverse": True,
+        "limit": module.LIVE_FETCH_CEILING,
+    }
+    assert [msg.id for msg in result] == [101, 102, 103]
+
+
+def test_fetch_recent_messages_cold_start_uses_lookback_window() -> None:
     module = load_module()
     now = datetime.now(timezone.utc)
 
@@ -304,12 +347,27 @@ def test_fetch_recent_messages_respects_cutoff_not_last_seen() -> None:
         module._fetch_recent_messages(
             client=FakeClient(),
             source_id=-1001,
-            last_seen_id=100,
+            last_seen_id=0,
             cutoff_dt=now - timedelta(minutes=60),
         )
     )
 
     assert [msg.id for msg in result] == [100, 109, 110]
+
+
+def test_rotated_live_source_ids_cycles_start_source() -> None:
+    module = load_module()
+    state: dict = {}
+
+    first = module._rotated_live_source_ids(state, (-1001, -1002, -1003))
+    second = module._rotated_live_source_ids(state, (-1001, -1002, -1003))
+    third = module._rotated_live_source_ids(state, (-1001, -1002, -1003))
+    fourth = module._rotated_live_source_ids(state, (-1001, -1002, -1003))
+
+    assert first == (-1001, -1002, -1003)
+    assert second == (-1002, -1003, -1001)
+    assert third == (-1003, -1001, -1002)
+    assert fourth == first
 
 
 def test_copy_source_messages_forwards_each_group(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -1948,3 +2006,1413 @@ def test_safe_log_prints_when_context_has_no_logger(monkeypatch: pytest.MonkeyPa
     module._safe_log(SimpleNamespace(), "fallback", echo_native=False)
 
     assert printed == ["fallback"]
+
+
+def test_load_settings_parses_backfill_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+    clear_env(monkeypatch)
+    monkeypatch.setenv("API_ID", "123456")
+    monkeypatch.setenv("API_HASH", "hash")
+    monkeypatch.setenv("SESSION_STRING", "session")
+    monkeypatch.setenv("SOURCE_CHANNEL_ID", "-1001")
+    monkeypatch.setenv("DESTINATION_CHANNEL_ID", "-1002")
+    monkeypatch.setenv("BACKFILL_ENABLED", "1")
+    monkeypatch.setenv("BACKFILL_SINCE_IST", "2026-11-08 22:30")
+    monkeypatch.setenv("BACKFILL_CHUNK_SIZE", "250")
+    monkeypatch.setenv("RUN_TIME_BUDGET_SECONDS", "200")
+
+    settings = module._load_settings_from_env()
+
+    assert settings.backfill_enabled is True
+    assert settings.backfill_chunk_size == 250
+    assert settings.backfill_time_budget_seconds == 200
+    expected_ms = int(
+        datetime(2026, 11, 8, 22, 30, tzinfo=module.IST_TIMEZONE).timestamp() * 1000
+    )
+    assert settings.backfill_since_ms == expected_ms
+
+
+def test_load_settings_rejects_invalid_backfill_since(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+    clear_env(monkeypatch)
+    monkeypatch.setenv("API_ID", "123456")
+    monkeypatch.setenv("API_HASH", "hash")
+    monkeypatch.setenv("SESSION_STRING", "session")
+    monkeypatch.setenv("SOURCE_CHANNEL_ID", "-1001")
+    monkeypatch.setenv("DESTINATION_CHANNEL_ID", "-1002")
+    monkeypatch.setenv("BACKFILL_ENABLED", "1")
+    monkeypatch.setenv("BACKFILL_SINCE_IST", "not-a-date")
+
+    with pytest.raises(ValueError, match="BACKFILL_SINCE_IST"):
+        module._load_settings_from_env()
+
+
+def test_set_source_state_preserves_backfill_progress() -> None:
+    module = load_module()
+    state = {
+        "sources": {
+            "-1001": {
+                "backfill_max_id": 900,
+                "backfill_done": 0,
+                "backfill_scanned": 25,
+                "backfill_copied": 20,
+            }
+        }
+    }
+
+    module._set_source_state(state, "-1001", last_id=1000, recent=[999, 1000])
+
+    entry = state["sources"]["-1001"]
+    assert entry["last_id"] == 1000
+    assert entry["backfill_max_id"] == 900
+    assert entry["backfill_scanned"] == 25
+    assert entry["backfill_copied"] == 20
+
+
+def test_fetch_backfill_chunk_honors_offset_limit_and_floor() -> None:
+    module = load_module()
+    now = datetime.now(timezone.utc)
+    messages = [
+        SimpleNamespace(id=10, date=now - timedelta(hours=1)),
+        SimpleNamespace(id=9, date=now - timedelta(hours=2)),
+        SimpleNamespace(id=8, date=now - timedelta(hours=3)),
+        SimpleNamespace(id=7, date=now - timedelta(hours=4)),
+    ]
+
+    class FakeClient:
+        def __init__(self) -> None:
+            self.calls: list[dict] = []
+
+        async def iter_messages(self, target, limit=None, offset_id=None):  # noqa: ANN001
+            self.calls.append({"target": target, "limit": limit, "offset_id": offset_id})
+            batch = [m for m in messages if offset_id is None or m.id < offset_id]
+            batch.sort(key=lambda m: m.id, reverse=True)
+            for msg in batch[:limit]:
+                yield msg
+
+    client = FakeClient()
+    chunk, done = asyncio.run(
+        module._fetch_backfill_chunk(
+            client=client,
+            source_id=-1001,
+            max_id=9,
+            floor_dt=now - timedelta(hours=3, minutes=30),
+            chunk_size=5,
+        )
+    )
+
+    assert client.calls == [{"target": -1001, "limit": 5, "offset_id": 9}]
+    assert [msg.id for msg in chunk] == [8]
+    assert done is True
+
+
+def test_backfill_phase_chunks_resumes_and_finishes(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+    now = datetime.now(timezone.utc)
+    messages = [
+        SimpleNamespace(id=5, date=now - timedelta(minutes=5), message="", grouped_id=None),
+        SimpleNamespace(id=4, date=now - timedelta(minutes=10), message="", grouped_id=None),
+        SimpleNamespace(id=3, date=now - timedelta(minutes=15), message="", grouped_id=None),
+        SimpleNamespace(id=2, date=now - timedelta(minutes=20), message="", grouped_id=None),
+        SimpleNamespace(id=1, date=now - timedelta(minutes=25), message="", grouped_id=None),
+    ]
+
+    class FakeClient:
+        async def iter_messages(self, target, limit=None, offset_id=None):  # noqa: ANN001
+            batch = [m for m in messages if offset_id is None or m.id < offset_id]
+            batch.sort(key=lambda m: m.id, reverse=True)
+            for msg in batch[:limit]:
+                yield msg
+
+    copied_ids: list[int] = []
+
+    async def fake_forward(*args, **kwargs):  # noqa: ANN001, ANN002
+        message_ids = list(kwargs.get("message_ids") or [])
+        copied_ids.extend(message_ids)
+        return len(message_ids), 0, tuple(message_ids)
+
+    async def fake_load_state(client):  # noqa: ANN001
+        return {"sources": {}}, 1
+
+    async def fake_save_state(client, state, state_message_id):  # noqa: ANN001
+        return 1, True
+
+    async def fake_fetch_recent_messages(client, source_id, last_seen_id, cutoff_dt):  # noqa: ANN001
+        return []
+
+    monkeypatch.setattr(module, "_forward_with_fallback", fake_forward)
+    monkeypatch.setattr(module, "_load_state", fake_load_state)
+    monkeypatch.setattr(module, "_save_state", fake_save_state)
+    monkeypatch.setattr(module, "_fetch_recent_messages", fake_fetch_recent_messages)
+    monkeypatch.setattr(module, "_load_recent_run_snapshot_ids", AsyncMock(return_value={}))
+    monkeypatch.setattr(module, "_save_run_window_ids", AsyncMock(return_value=[1]))
+
+    settings = module.AppwriteSettings(
+        api_id=1,
+        api_hash="x",
+        session_string="y",
+        source_channel_ids=(-1001,),
+        destination_channel_id=-2002,
+        limit_per_source=50,
+        lookback_minutes=60,
+        backfill_enabled=True,
+        backfill_since_ms=0,
+        backfill_chunk_size=2,
+        backfill_time_budget_seconds=240,
+    )
+
+    state: dict = {"sources": {}}
+    first = asyncio.run(
+        module._run_backfill_phase(
+            client=FakeClient(),
+            settings=settings,
+            state=state,
+            resolved_source_entities={},
+            entity_errors={},
+            deadline_monotonic=float("inf"),
+        )
+    )
+    assert first["copied"] == 2
+    assert state["sources"]["-1001"]["backfill_max_id"] == 4
+    assert state["sources"]["-1001"]["backfill_done"] == 0
+
+    second = asyncio.run(
+        module._run_backfill_phase(
+            client=FakeClient(),
+            settings=settings,
+            state=state,
+            resolved_source_entities={},
+            entity_errors={},
+            deadline_monotonic=float("inf"),
+        )
+    )
+    assert second["copied"] == 2
+    assert state["sources"]["-1001"]["backfill_max_id"] == 2
+
+    third = asyncio.run(
+        module._run_backfill_phase(
+            client=FakeClient(),
+            settings=settings,
+            state=state,
+            resolved_source_entities={},
+            entity_errors={},
+            deadline_monotonic=float("inf"),
+        )
+    )
+    assert third["copied"] == 1
+    assert state["sources"]["-1001"]["backfill_done"] == 1
+
+    fourth = asyncio.run(
+        module._run_backfill_phase(
+            client=FakeClient(),
+            settings=settings,
+            state=state,
+            resolved_source_entities={},
+            entity_errors={},
+            deadline_monotonic=float("inf"),
+        )
+    )
+    assert fourth["copied"] == 0
+    assert fourth["sources_done"] == 1
+    assert sorted(copied_ids) == [1, 2, 3, 4, 5]
+
+
+def test_backfill_phase_skips_recent_duplicates(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = load_module()
+    now = datetime.now(timezone.utc)
+    messages = [
+        SimpleNamespace(id=2, date=now - timedelta(minutes=5), message="", grouped_id=None),
+        SimpleNamespace(id=1, date=now - timedelta(minutes=10), message="", grouped_id=None),
+    ]
+
+    class FakeClient:
+        async def iter_messages(self, target, limit=None, offset_id=None):  # noqa: ANN001
+            for msg in messages:
+                yield msg
+
+    copied_ids: list[int] = []
+
+    async def fake_forward(*args, **kwargs):  # noqa: ANN001, ANN002
+        message_ids = list(kwargs.get("message_ids") or [])
+        copied_ids.extend(message_ids)
+        return len(message_ids), 0, tuple(message_ids)
+
+    monkeypatch.setattr(module, "_forward_with_fallback", fake_forward)
+
+    settings = module.AppwriteSettings(
+        api_id=1,
+        api_hash="x",
+        session_string="y",
+        source_channel_ids=(-1001,),
+        destination_channel_id=-2002,
+        limit_per_source=50,
+        lookback_minutes=60,
+        backfill_enabled=True,
+        backfill_chunk_size=10,
+    )
+    state = {"sources": {"-1001": {"last_id": 2, "recent": [2]}}}
+
+    stats = asyncio.run(
+        module._run_backfill_phase(
+            client=FakeClient(),
+            settings=settings,
+            state=state,
+            resolved_source_entities={},
+            entity_errors={},
+            deadline_monotonic=float("inf"),
+        )
+    )
+
+    assert stats["copied"] == 1
+    assert copied_ids == [1]
+    assert state["sources"]["-1001"]["backfill_done"] == 1
+
+
+def test_copy_source_messages_runs_backfill_after_live_window(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = load_module()
+    now = datetime.now(timezone.utc)
+    history = [
+        SimpleNamespace(id=2, date=now - timedelta(hours=30), message="", grouped_id=None),
+        SimpleNamespace(id=1, date=now - timedelta(hours=31), message="", grouped_id=None),
+    ]
+
+    class FakeClient:
+        async def iter_messages(self, target, limit=None, offset_id=None):  # noqa: ANN001
+            if limit is None:
+                return
+            batch = [m for m in history if offset_id is None or m.id < offset_id]
+            batch.sort(key=lambda m: m.id, reverse=True)
+            for msg in batch[:limit]:
+                yield msg
+
+    saved_states: list[dict] = []
+
+    async def fake_load_state(client):  # noqa: ANN001
+        return {"sources": {}}, 1
+
+    async def fake_save_state(client, state, state_message_id):  # noqa: ANN001
+        saved_states.append(json.loads(json.dumps(state)))
+        return 1, True
+
+    async def fake_fetch_recent_messages(client, source_id, last_seen_id, cutoff_dt):  # noqa: ANN001
+        return []
+
+    async def fake_forward(*args, **kwargs):  # noqa: ANN001, ANN002
+        message_ids = list(kwargs.get("message_ids") or [])
+        return len(message_ids), 0, tuple(message_ids)
+
+    monkeypatch.setattr(module, "_load_state", fake_load_state)
+    monkeypatch.setattr(module, "_save_state", fake_save_state)
+    monkeypatch.setattr(module, "_fetch_recent_messages", fake_fetch_recent_messages)
+    monkeypatch.setattr(module, "_load_recent_run_snapshot_ids", AsyncMock(return_value={}))
+    monkeypatch.setattr(module, "_forward_with_fallback", fake_forward)
+    monkeypatch.setattr(module, "_save_run_window_ids", AsyncMock(return_value=[1]))
+
+    settings = module.AppwriteSettings(
+        api_id=1,
+        api_hash="x",
+        session_string="y",
+        source_channel_ids=(-1001,),
+        destination_channel_id=-2002,
+        limit_per_source=50,
+        lookback_minutes=60,
+        backfill_enabled=True,
+        backfill_since_ms=0,
+        backfill_chunk_size=10,
+    )
+
+    result = asyncio.run(module._copy_source_messages(client=FakeClient(), settings=settings))
+
+    assert result["backfill_copied"] == 2
+    assert result["copied"] == 2
+    assert result["backfill_sources_done"] == 1
+    assert result["partial"] == 0
+    final_state = saved_states[-1]
+    assert final_state["sources"]["-1001"]["backfill_done"] == 1
+    # Backfill must not move the live cursor.
+    assert final_state["sources"]["-1001"]["last_id"] == 0
+
+
+def test_backfill_phase_stops_at_deadline_without_losing_progress(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = load_module()
+    now = datetime.now(timezone.utc)
+    messages = [
+        SimpleNamespace(id=2, date=now - timedelta(minutes=5), message="", grouped_id=None),
+        SimpleNamespace(id=1, date=now - timedelta(minutes=10), message="", grouped_id=None),
+    ]
+
+    class FakeClient:
+        async def iter_messages(self, target, limit=None, offset_id=None):  # noqa: ANN001
+            for msg in messages:
+                yield msg
+
+    deadline_checks = {"count": 0}
+
+    def fake_deadline_reached(deadline_monotonic: float) -> bool:  # noqa: ANN001
+        deadline_checks["count"] += 1
+        # First check (source loop) passes; the group-loop check reports expiry.
+        return deadline_checks["count"] > 1
+
+    monkeypatch.setattr(module, "_deadline_reached", fake_deadline_reached)
+
+    settings = module.AppwriteSettings(
+        api_id=1,
+        api_hash="x",
+        session_string="y",
+        source_channel_ids=(-1001,),
+        destination_channel_id=-2002,
+        limit_per_source=50,
+        lookback_minutes=60,
+        backfill_enabled=True,
+        backfill_chunk_size=10,
+    )
+    state: dict = {"sources": {}}
+
+    stats = asyncio.run(
+        module._run_backfill_phase(
+            client=FakeClient(),
+            settings=settings,
+            state=state,
+            resolved_source_entities={},
+            entity_errors={},
+            deadline_monotonic=float("inf"),
+        )
+    )
+
+    assert stats["deadline_reached"] == 1
+    assert stats["copied"] == 0
+    assert state["sources"]["-1001"]["backfill_done"] == 0
+    # Next run refetches from the newest ID, because nothing was handled.
+    assert state["sources"]["-1001"]["backfill_max_id"] == 3
+
+
+def test_parse_copy_date_range_ms_uses_ist() -> None:
+    module = load_module()
+
+    start_ms, end_ms = module._parse_copy_date_range_ms("2026-11-08")
+
+    assert end_ms - start_ms == 24 * 60 * 60 * 1000
+    # 2026-11-08 00:00 IST == 2026-11-07 18:30 UTC
+    assert datetime.fromtimestamp(start_ms / 1000, tz=timezone.utc) == datetime(
+        2026, 11, 7, 18, 30, tzinfo=timezone.utc
+    )
+    assert module._parse_copy_date_range_ms("") == (0, 0)
+
+
+def test_parse_copy_date_range_ms_rejects_bad_input() -> None:
+    module = load_module()
+
+    with pytest.raises(ValueError, match="COPY_DATE"):
+        module._parse_copy_date_range_ms("08-11-2026")
+
+
+def test_load_settings_parses_copy_date(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+    clear_env(monkeypatch)
+    monkeypatch.setenv("API_ID", "123456")
+    monkeypatch.setenv("API_HASH", "hash")
+    monkeypatch.setenv("SESSION_STRING", "session")
+    monkeypatch.setenv("SOURCE_CHANNEL_ID", "-1001")
+    monkeypatch.setenv("DESTINATION_CHANNEL_ID", "-1002")
+    monkeypatch.setenv("COPY_DATE", "2026-11-08")
+
+    settings = module._load_settings_from_env()
+
+    assert settings.copy_date == "2026-11-08"
+    assert settings.copy_date_end_ms - settings.copy_date_start_ms == 24 * 60 * 60 * 1000
+
+
+def test_load_settings_rejects_copy_date_with_backfill(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+    clear_env(monkeypatch)
+    monkeypatch.setenv("API_ID", "123456")
+    monkeypatch.setenv("API_HASH", "hash")
+    monkeypatch.setenv("SESSION_STRING", "session")
+    monkeypatch.setenv("SOURCE_CHANNEL_ID", "-1001")
+    monkeypatch.setenv("DESTINATION_CHANNEL_ID", "-1002")
+    monkeypatch.setenv("COPY_DATE", "2026-11-08")
+    monkeypatch.setenv("BACKFILL_ENABLED", "1")
+
+    with pytest.raises(ValueError, match="COPY_DATE"):
+        module._load_settings_from_env()
+
+
+class FakeDateClient:
+    """Minimal Telethon stand-in that honours offset_date and offset_id."""
+
+    def __init__(self, messages) -> None:  # noqa: ANN001
+        self.messages = sorted(messages, key=lambda m: m.id, reverse=True)
+        self.calls: list[dict] = []
+
+    async def iter_messages(self, entity, limit=None, offset_id=0, offset_date=None):  # noqa: ANN001
+        self.calls.append({"offset_id": offset_id, "offset_date": offset_date})
+        yielded = 0
+        for msg in self.messages:
+            if offset_id and msg.id >= offset_id:
+                continue
+            if offset_date is not None and msg.date >= offset_date:
+                continue
+            if limit is not None and yielded >= limit:
+                break
+            yielded += 1
+            yield msg
+
+
+def _day_messages() -> list:
+    """Messages around 2026-11-08 IST: ids 2, 3, 4 fall inside the day."""
+    return [
+        SimpleNamespace(id=1, message="before day", grouped_id=None, media=None, date=datetime(2026, 11, 7, 10, 0, tzinfo=timezone.utc)),
+        SimpleNamespace(id=2, message="day start", grouped_id=None, media=None, date=datetime(2026, 11, 7, 18, 30, tzinfo=timezone.utc)),
+        SimpleNamespace(id=3, message="midday", grouped_id=None, media=None, date=datetime(2026, 11, 8, 12, 0, tzinfo=timezone.utc)),
+        SimpleNamespace(id=4, message="day end", grouped_id=None, media=None, date=datetime(2026, 11, 8, 18, 29, tzinfo=timezone.utc)),
+        SimpleNamespace(id=5, message="next day", grouped_id=None, media=None, date=datetime(2026, 11, 8, 18, 30, tzinfo=timezone.utc)),
+        SimpleNamespace(id=6, message="later", grouped_id=None, media=None, date=datetime(2026, 11, 9, 10, 0, tzinfo=timezone.utc)),
+    ]
+
+
+def _date_settings(module, chunk_size: int = 100):  # noqa: ANN001
+    start_ms, end_ms = module._parse_copy_date_range_ms("2026-11-08")
+    return module.AppwriteSettings(
+        api_id=1,
+        api_hash="x",
+        session_string="y",
+        source_channel_ids=(-1001,),
+        destination_channel_id=-2002,
+        limit_per_source=50,
+        lookback_minutes=60,
+        copy_date="2026-11-08",
+        copy_date_start_ms=start_ms,
+        copy_date_end_ms=end_ms,
+        backfill_chunk_size=chunk_size,
+    )
+
+
+def test_run_date_phase_copies_only_requested_day(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+    copied_ids: list[int] = []
+
+    async def fake_copy_single(client, destination_channel_id, source_id, message, **kwargs):  # noqa: ANN001
+        copied_ids.append(int(message.id))
+        return 1, 0, 0, (int(message.id),)
+
+    monkeypatch.setattr(module, "_copy_single_with_optional_sanitize", fake_copy_single)
+
+    state: dict = {"sources": {}}
+    client = FakeDateClient(_day_messages())
+
+    stats = asyncio.run(
+        module._run_date_phase(
+            client=client,
+            settings=_date_settings(module),
+            state=state,
+            resolved_source_entities={},
+            entity_errors={},
+            deadline_monotonic=float("inf"),
+        )
+    )
+
+    assert copied_ids == [2, 3, 4]
+    assert stats["copied"] == 3
+    assert stats["sources_done"] == 1
+    assert client.calls[0]["offset_date"] is not None
+    entry = state["sources"]["-1001"]
+    assert entry["copy_date"] == "2026-11-08"
+
+
+def test_run_date_phase_drains_whole_day_in_one_run(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+    copied_ids: list[int] = []
+
+    async def fake_copy_single(client, destination_channel_id, source_id, message, **kwargs):  # noqa: ANN001
+        copied_ids.append(int(message.id))
+        return 1, 0, 0, (int(message.id),)
+
+    monkeypatch.setattr(module, "_copy_single_with_optional_sanitize", fake_copy_single)
+
+    state: dict = {"sources": {}}
+    client = FakeDateClient(_day_messages())
+
+    stats = asyncio.run(
+        module._run_date_phase(
+            client=client,
+            settings=_date_settings(module, chunk_size=2),
+            state=state,
+            resolved_source_entities={},
+            entity_errors={},
+            deadline_monotonic=float("inf"),
+        )
+    )
+
+    # The day holds 3 messages and the chunk is 2: the phase must keep fetching
+    # instead of stopping after one chunk.
+    assert sorted(copied_ids) == [2, 3, 4]
+    assert stats["copied"] == 3
+    assert stats["chunks"] == 2
+    assert stats["sources_done"] == 1
+    assert stats["deadline_reached"] == 0
+    assert len(client.calls) == 2
+    entry = state["sources"]["-1001"]
+    assert entry["copy_date_done"] == 1
+    assert entry["copy_date_copied"] == 3
+    assert entry["last_id"] == 0
+
+
+class FakeMultiEntityDateClient:
+    """Same contract as FakeDateClient, but with a message list per entity."""
+
+    def __init__(self, by_entity) -> None:  # noqa: ANN001
+        self.by_entity = {
+            entity: sorted(messages, key=lambda m: m.id, reverse=True)
+            for entity, messages in by_entity.items()
+        }
+
+    async def iter_messages(self, entity, limit=None, offset_id=0, offset_date=None):  # noqa: ANN001
+        yielded = 0
+        for msg in self.by_entity.get(entity, []):
+            if offset_id and msg.id >= offset_id:
+                continue
+            if offset_date is not None and msg.date >= offset_date:
+                continue
+            if limit is not None and yielded >= limit:
+                break
+            yielded += 1
+            yield msg
+
+
+def test_run_date_phase_copies_all_sources_in_one_run(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+    copied: list[tuple[int, int]] = []
+
+    async def fake_copy_single(client, destination_channel_id, source_id, message, **kwargs):  # noqa: ANN001
+        copied.append((int(source_id), int(message.id)))
+        return 1, 0, 0, (int(message.id),)
+
+    monkeypatch.setattr(module, "_copy_single_with_optional_sanitize", fake_copy_single)
+
+    start_ms, end_ms = module._parse_copy_date_range_ms("2026-11-08")
+    settings = module.AppwriteSettings(
+        api_id=1,
+        api_hash="x",
+        session_string="y",
+        source_channel_ids=(-1001, -1002),
+        destination_channel_id=-2002,
+        limit_per_source=50,
+        lookback_minutes=60,
+        copy_date="2026-11-08",
+        copy_date_start_ms=start_ms,
+        copy_date_end_ms=end_ms,
+        backfill_chunk_size=2,
+    )
+
+    in_day = datetime(2026, 11, 8, 12, 0, tzinfo=timezone.utc)
+    client = FakeMultiEntityDateClient(
+        {
+            -1001: [
+                SimpleNamespace(id=10 + i, message=f"a{i}", grouped_id=None, media=None, date=in_day)
+                for i in range(3)
+            ],
+            -1002: [
+                SimpleNamespace(id=20 + i, message=f"b{i}", grouped_id=None, media=None, date=in_day)
+                for i in range(3)
+            ],
+        }
+    )
+    state: dict = {"sources": {}}
+
+    stats = asyncio.run(
+        module._run_date_phase(
+            client=client,
+            settings=settings,
+            state=state,
+            resolved_source_entities={},
+            entity_errors={},
+            deadline_monotonic=float("inf"),
+        )
+    )
+
+    assert stats["copied"] == 6
+    assert stats["sources_done"] == 2
+    assert stats["sources_processed"] == 2
+    assert sorted(src for src, _mid in copied) == [-1002, -1002, -1002, -1001, -1001, -1001]
+    assert state["sources"]["-1001"]["copy_date_done"] == 1
+    assert state["sources"]["-1002"]["copy_date_done"] == 1
+    # The live cursor must never move for a historical replay.
+    assert state["sources"]["-1001"]["last_id"] == 0
+    assert state["sources"]["-1002"]["last_id"] == 0
+
+
+BEFORE_DAY = datetime(2026, 11, 6, 12, 0, tzinfo=timezone.utc)
+IN_DAY = datetime(2026, 11, 8, 12, 0, tzinfo=timezone.utc)
+
+
+def _out_of_order_messages() -> list:
+    """A day whose posts are not perfectly ordered by date.
+
+    id 9 carries a backdated date, so a fetch that stops at the first message
+    older than the day drops ids 8 and 7 with it.
+    """
+    return [
+        SimpleNamespace(id=10, message="a", grouped_id=None, media=None, date=IN_DAY),
+        SimpleNamespace(id=9, message="backdated", grouped_id=None, media=None, date=BEFORE_DAY),
+        SimpleNamespace(id=8, message="b", grouped_id=None, media=None, date=IN_DAY),
+        SimpleNamespace(id=7, message="c", grouped_id=None, media=None, date=IN_DAY),
+        SimpleNamespace(id=6, message="floor", grouped_id=None, media=None, date=BEFORE_DAY),
+    ]
+
+
+def _date_bounds(module):  # noqa: ANN001
+    start_ms, end_ms = module._parse_copy_date_range_ms("2026-11-08")
+    return (
+        datetime.fromtimestamp(start_ms / 1000, tz=timezone.utc),
+        datetime.fromtimestamp(end_ms / 1000, tz=timezone.utc),
+    )
+
+
+def test_fetch_date_chunk_keeps_going_past_a_backdated_message() -> None:
+    module = load_module()
+    start_dt, end_dt = _date_bounds(module)
+    client = FakeDateClient(_out_of_order_messages())
+
+    messages, done = asyncio.run(
+        module._fetch_date_chunk(
+            client=client,
+            source_id=-1001,
+            start_dt=start_dt,
+            end_dt=end_dt,
+            max_id=0,
+            chunk_size=3,
+        )
+    )
+
+    assert [int(m.id) for m in messages] == [8, 10]
+    # A full batch is not the end of the day just because one member is older.
+    assert done is False
+
+
+def test_fetch_date_chunk_finishes_after_paging_below_the_day() -> None:
+    module = load_module()
+    start_dt, end_dt = _date_bounds(module)
+    client = FakeDateClient(_out_of_order_messages())
+
+    messages, done = asyncio.run(
+        module._fetch_date_chunk(
+            client=client,
+            source_id=-1001,
+            start_dt=start_dt,
+            end_dt=end_dt,
+            max_id=8,
+            chunk_size=3,
+        )
+    )
+
+    assert [int(m.id) for m in messages] == [7]
+    assert done is True
+
+
+def test_run_date_phase_copies_every_in_day_message_of_an_unordered_channel(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = load_module()
+    copied_ids: list[int] = []
+
+    async def fake_copy_single(client, destination_channel_id, source_id, message, **kwargs):  # noqa: ANN001
+        copied_ids.append(int(message.id))
+        return 1, 0, 0, (int(message.id),)
+
+    monkeypatch.setattr(module, "_copy_single_with_optional_sanitize", fake_copy_single)
+    state: dict = {"sources": {}}
+
+    stats = asyncio.run(
+        module._run_date_phase(
+            client=FakeDateClient(_out_of_order_messages()),
+            settings=_date_settings(module, chunk_size=3),
+            state=state,
+            resolved_source_entities={},
+            entity_errors={},
+            deadline_monotonic=float("inf"),
+        )
+    )
+
+    assert sorted(copied_ids) == [7, 8, 10]
+    assert stats["copied"] == 3
+    assert stats["chunks"] == 2
+    assert stats["sources_done"] == 1
+    assert state["sources"]["-1001"]["copy_date_done"] == 1
+
+
+def test_should_skip_message_text_blocks_copyright_notice(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+    clear_env(monkeypatch)
+    notice = (
+        "\u200bThis message couldn't be displayed on your device due to copyright "
+        "infringement."
+    )
+
+    assert module._is_copyright_blocked_text(notice)
+    assert module._should_skip_message_text(notice)
+    assert module._should_skip_message_text(
+        "This message couldn\u2019t be displayed on your device due to copyright infringement"
+    )
+    assert module._should_skip_message_text(
+        "This message cannot be displayed on your device due to copyright infringement."
+    )
+    assert not module._should_skip_message_text("New movie out now")
+    assert not module._should_skip_message_text("Copyright infringement is a crime")
+
+    monkeypatch.setenv("BLOCK_COPYRIGHT_MESSAGES", "0")
+    assert not module._should_skip_message_text(notice)
+
+
+def test_run_date_phase_skips_copyright_notice_messages(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+    clear_env(monkeypatch)
+    copied_ids: list[int] = []
+
+    async def fake_copy_single(client, destination_channel_id, source_id, message, **kwargs):  # noqa: ANN001
+        copied_ids.append(int(message.id))
+        return 1, 0, 0, (int(message.id),)
+
+    monkeypatch.setattr(module, "_copy_single_with_optional_sanitize", fake_copy_single)
+    notice = (
+        "This message couldn't be displayed on your device due to copyright infringement."
+    )
+    client = FakeDateClient(
+        [
+            SimpleNamespace(id=11, message=notice, grouped_id=None, media=None, date=IN_DAY),
+            SimpleNamespace(id=12, message="real post", grouped_id=None, media=None, date=IN_DAY),
+        ]
+    )
+    state: dict = {"sources": {}}
+
+    stats = asyncio.run(
+        module._run_date_phase(
+            client=client,
+            settings=_date_settings(module),
+            state=state,
+            resolved_source_entities={},
+            entity_errors={},
+            deadline_monotonic=float("inf"),
+        )
+    )
+
+    assert copied_ids == [12]
+    assert stats["copied"] == 1
+    assert stats["skipped"] == 1
+
+
+def _forwards_restricted_error() -> Exception:
+    from telethon.errors.rpcerrorlist import ChatForwardsRestrictedError
+
+    try:
+        return ChatForwardsRestrictedError(request=None)
+    except TypeError:
+        return ChatForwardsRestrictedError()
+
+
+def test_repost_retries_protected_media_with_downloaded_bytes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = load_module()
+    monkeypatch.delenv("COPY_MODE", raising=False)
+
+    class MessageMediaPhoto:
+        pass
+
+    class FakeClient:
+        def __init__(self) -> None:
+            self.files = []
+            self.downloads = 0
+
+        async def get_messages(self, source_id, ids):  # noqa: ANN001
+            return [
+                SimpleNamespace(
+                    id=41,
+                    message="photo",
+                    entities=None,
+                    media=MessageMediaPhoto(),
+                    gif=False,
+                    file=SimpleNamespace(size=2048),
+                )
+            ]
+
+        async def send_file(self, **kwargs):  # noqa: ANN003
+            self.files.append(kwargs["file"])
+            if not isinstance(kwargs["file"], (bytes, bytearray)):
+                # Re-uploading the source file reference of a protected chat.
+                raise _forwards_restricted_error()
+            return FakeSentMessage(51)
+
+        async def download_media(self, message, file=None):  # noqa: ANN001
+            self.downloads += 1
+            return b"fresh-bytes"
+
+    client = FakeClient()
+    result = asyncio.run(
+        module._repost_messages_without_forward(
+            client=client,
+            destination_channel_id=-2002,
+            source_id=-1001,
+            message_ids=[41],
+        )
+    )
+
+    assert client.downloads == 1
+    assert client.files[-1] == b"fresh-bytes"
+    assert result == (1, 0, (41,))
+
+
+def test_repost_skips_protected_media_it_cannot_reupload(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+    monkeypatch.delenv("COPY_MODE", raising=False)
+
+    class MessageMediaPhoto:
+        pass
+
+    class FakeClient:
+        def __init__(self) -> None:
+            self.downloads = 0
+
+        async def get_messages(self, source_id, ids):  # noqa: ANN001
+            return [
+                SimpleNamespace(
+                    id=41,
+                    message="huge video",
+                    entities=None,
+                    media=MessageMediaPhoto(),
+                    gif=False,
+                    file=SimpleNamespace(size=module.RESTRICTED_MEDIA_FALLBACK_MAX_BYTES + 1),
+                ),
+                SimpleNamespace(
+                    id=42,
+                    message="no bytes",
+                    entities=None,
+                    media=MessageMediaPhoto(),
+                    gif=False,
+                    file=SimpleNamespace(size=2048),
+                ),
+            ]
+
+        async def send_file(self, **kwargs):  # noqa: ANN003
+            raise _forwards_restricted_error()
+
+        async def download_media(self, message, file=None):  # noqa: ANN001
+            self.downloads += 1
+            return None
+
+    client = FakeClient()
+    result = asyncio.run(
+        module._repost_messages_without_forward(
+            client=client,
+            destination_channel_id=-2002,
+            source_id=-1001,
+            message_ids=[41, 42],
+        )
+    )
+
+    # Oversized media is never buffered; a failed download is skipped, not raised.
+    assert client.downloads == 1
+    assert result == (0, 2, (41, 42))
+
+
+def test_run_date_phase_survives_a_forwards_restricted_source(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = load_module()
+    delivered: list[tuple[int, int]] = []
+
+    async def flaky_deliver(
+        client, destination_channel_id, source_id, messages, group_ids, **kwargs  # noqa: ANN001, ANN003
+    ):
+        if int(source_id) == -1001:
+            raise _forwards_restricted_error()
+        for mid in group_ids:
+            delivered.append((int(source_id), int(mid)))
+        return len(group_ids), 0, set(group_ids)
+
+    monkeypatch.setattr(module, "_deliver_group", flaky_deliver)
+
+    start_ms, end_ms = module._parse_copy_date_range_ms("2026-11-08")
+    settings = module.AppwriteSettings(
+        api_id=1,
+        api_hash="x",
+        session_string="y",
+        source_channel_ids=(-1001, -1002),
+        destination_channel_id=-2002,
+        limit_per_source=50,
+        lookback_minutes=60,
+        copy_date="2026-11-08",
+        copy_date_start_ms=start_ms,
+        copy_date_end_ms=end_ms,
+        backfill_chunk_size=10,
+    )
+    in_day = datetime(2026, 11, 8, 12, 0, tzinfo=timezone.utc)
+    client = FakeMultiEntityDateClient(
+        {
+            -1001: [SimpleNamespace(id=10, message="a", grouped_id=None, media=None, date=in_day)],
+            -1002: [SimpleNamespace(id=20, message="b", grouped_id=None, media=None, date=in_day)],
+        }
+    )
+    state: dict = {"sources": {}}
+
+    stats = asyncio.run(
+        module._run_date_phase(
+            client=client,
+            settings=settings,
+            state=state,
+            resolved_source_entities={},
+            entity_errors={},
+            deadline_monotonic=float("inf"),
+        )
+    )
+
+    # The protected source is recorded and skipped; the other source still copies
+    # and the day finishes for both.
+    assert delivered == [(-1002, 20)]
+    assert stats["copied"] == 1
+    assert stats["skipped"] == 1
+    assert stats["sources_done"] == 2
+    assert "-1001" in stats["errors"]
+    assert "ChatForwardsRestrictedError" in stats["errors"]["-1001"]
+
+
+def test_run_date_phase_resumes_across_runs(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+    copied_ids: list[int] = []
+
+    async def fake_copy_single(client, destination_channel_id, source_id, message, **kwargs):  # noqa: ANN001
+        copied_ids.append(int(message.id))
+        return 1, 0, 0, (int(message.id),)
+
+    monkeypatch.setattr(module, "_copy_single_with_optional_sanitize", fake_copy_single)
+
+    state: dict = {"sources": {}}
+    settings = _date_settings(module, chunk_size=2)
+
+    # Run 1 starts with the budget already spent: nothing is fetched and the
+    # day must not be marked done.
+    first = asyncio.run(
+        module._run_date_phase(
+            client=FakeDateClient(_day_messages()),
+            settings=settings,
+            state=state,
+            resolved_source_entities={},
+            entity_errors={},
+            deadline_monotonic=module.time.monotonic() - 1,
+        )
+    )
+    assert first["deadline_reached"] == 1
+    assert copied_ids == []
+    assert state.get("sources", {}).get("-1001", {}).get("copy_date_done", 0) == 0
+
+    # Run 2 resumes and finishes the whole day in a single execution.
+    second = asyncio.run(
+        module._run_date_phase(
+            client=FakeDateClient(_day_messages()),
+            settings=settings,
+            state=state,
+            resolved_source_entities={},
+            entity_errors={},
+            deadline_monotonic=float("inf"),
+        )
+    )
+
+    assert sorted(copied_ids) == [2, 3, 4]
+    assert second["sources_done"] == 1
+    assert state["sources"]["-1001"]["copy_date_done"] == 1
+    assert state["sources"]["-1001"]["last_id"] == 0
+
+    # Run 3 has nothing left to do and must not resend anything.
+    third = asyncio.run(
+        module._run_date_phase(
+            client=FakeDateClient(_day_messages()),
+            settings=settings,
+            state=state,
+            resolved_source_entities={},
+            entity_errors={},
+            deadline_monotonic=float("inf"),
+        )
+    )
+    assert third["sources_done"] == 1
+    assert third["copied"] == 0
+    assert sorted(copied_ids) == [2, 3, 4]
+
+
+def test_copy_source_messages_date_mode_skips_live_pass(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+
+    async def fake_load_state(client):  # noqa: ANN001
+        return {"sources": {}}, 1
+
+    async def fake_save_state(client, state, state_message_id):  # noqa: ANN001
+        return 1, True
+
+    async def fake_prime(client, source_ids):  # noqa: ANN001
+        return {}, {}
+
+    async def fake_copy_single(client, destination_channel_id, source_id, message, **kwargs):  # noqa: ANN001
+        return 1, 0, 0, (int(message.id),)
+
+    async def fail_live(*args, **kwargs):  # noqa: ANN002, ANN003
+        raise AssertionError("live lookback pass must not run in COPY_DATE mode")
+
+    monkeypatch.setattr(module, "_load_state", fake_load_state)
+    monkeypatch.setattr(module, "_save_state", fake_save_state)
+    monkeypatch.setattr(module, "_prime_source_entities", fake_prime)
+    monkeypatch.setattr(module, "_fetch_recent_messages", fail_live)
+    monkeypatch.setattr(module, "_copy_single_with_optional_sanitize", fake_copy_single)
+    monkeypatch.setattr(module, "_save_run_window_ids", AsyncMock(return_value=[]))
+
+    result = asyncio.run(
+        module._copy_source_messages(
+            client=FakeDateClient(_day_messages()), settings=_date_settings(module)
+        )
+    )
+
+    assert result["copy_date"] == "2026-11-08"
+    assert result["copied"] == 3
+    assert result["fetched"] == 3
+    assert result["copy_date_sources_done"] == 1
+    assert result["partial"] == 0
+
+
+def _history_messages(count: int) -> list:
+    base = datetime(2026, 11, 1, 12, 0, tzinfo=timezone.utc)
+    return [
+        SimpleNamespace(
+            id=i,
+            message=f"post {i}",
+            grouped_id=None,
+            media=None,
+            date=base + timedelta(minutes=i),
+        )
+        for i in range(1, count + 1)
+    ]
+
+
+def _copy_all_settings(module, chunk_size: int = 2):  # noqa: ANN001
+    return module.AppwriteSettings(
+        api_id=1,
+        api_hash="x",
+        session_string="y",
+        source_channel_ids=(-1001,),
+        destination_channel_id=-2002,
+        limit_per_source=50,
+        lookback_minutes=60,
+        backfill_chunk_size=chunk_size,
+        copy_all=True,
+    )
+
+
+def test_load_settings_parses_copy_all(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+    clear_env(monkeypatch)
+    monkeypatch.setenv("API_ID", "123456")
+    monkeypatch.setenv("API_HASH", "hash")
+    monkeypatch.setenv("SESSION_STRING", "session")
+    monkeypatch.setenv("SOURCE_CHANNEL_ID", "-1001")
+    monkeypatch.setenv("DESTINATION_CHANNEL_ID", "-1002")
+    monkeypatch.setenv("COPY_ALL", "1")
+
+    settings = module._load_settings_from_env()
+
+    assert settings.copy_all is True
+    assert settings.backfill_enabled is False
+    assert settings.copy_date == ""
+
+
+def test_load_settings_rejects_copy_all_conflicts(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+    clear_env(monkeypatch)
+    monkeypatch.setenv("API_ID", "123456")
+    monkeypatch.setenv("API_HASH", "hash")
+    monkeypatch.setenv("SESSION_STRING", "session")
+    monkeypatch.setenv("SOURCE_CHANNEL_ID", "-1001")
+    monkeypatch.setenv("DESTINATION_CHANNEL_ID", "-1002")
+    monkeypatch.setenv("COPY_ALL", "1")
+
+    monkeypatch.setenv("COPY_DATE", "2026-11-08")
+    with pytest.raises(ValueError, match="COPY_DATE is still '2026-11-08'"):
+        module._load_settings_from_env()
+
+    monkeypatch.delenv("COPY_DATE")
+    monkeypatch.setenv("BACKFILL_ENABLED", "1")
+    with pytest.raises(ValueError, match="COPY_ALL"):
+        module._load_settings_from_env()
+
+
+def test_load_settings_treats_copy_date_off_words_as_unset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = load_module()
+    clear_env(monkeypatch)
+    monkeypatch.setenv("API_ID", "123456")
+    monkeypatch.setenv("API_HASH", "hash")
+    monkeypatch.setenv("SESSION_STRING", "session")
+    monkeypatch.setenv("SOURCE_CHANNEL_ID", "-1001")
+    monkeypatch.setenv("DESTINATION_CHANNEL_ID", "-1002")
+    monkeypatch.setenv("COPY_ALL", "1")
+
+    for off_word in ("none", "NONE", "off", "no", "-", "clear"):
+        monkeypatch.setenv("COPY_DATE", off_word)
+        settings = module._load_settings_from_env()
+        assert settings.copy_date == ""
+        assert settings.copy_all is True
+        assert settings.copy_date_start_ms == 0
+
+
+def test_run_full_copy_phase_drains_entire_history_in_one_run(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = load_module()
+    copied_ids: list[int] = []
+
+    async def fake_copy_single(client, destination_channel_id, source_id, message, **kwargs):  # noqa: ANN001
+        copied_ids.append(int(message.id))
+        return 1, 0, 0, (int(message.id),)
+
+    monkeypatch.setattr(module, "_copy_single_with_optional_sanitize", fake_copy_single)
+
+    state: dict = {"sources": {}}
+    client = FakeDateClient(_history_messages(7))
+
+    stats = asyncio.run(
+        module._run_full_copy_phase(
+            client=client,
+            settings=_copy_all_settings(module, chunk_size=2),
+            state=state,
+            resolved_source_entities={},
+            entity_errors={},
+            deadline_monotonic=float("inf"),
+        )
+    )
+
+    assert sorted(copied_ids) == list(range(1, 8))
+    assert stats["copied"] == 7
+    assert stats["sources_done"] == 1
+    assert stats["deadline_reached"] == 0
+    entry = state["sources"]["-1001"]
+    assert entry["copy_all_done"] == 1
+    assert entry["copy_all_copied"] == 7
+    # A history replay must never move the live cursor.
+    assert entry["last_id"] == 0
+    # Backfill progress keys stay untouched.
+    assert "backfill_done" not in entry
+
+
+def test_run_full_copy_phase_resumes_and_raises_no_duplicates(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = load_module()
+    copied_ids: list[int] = []
+
+    async def fake_copy_single(client, destination_channel_id, source_id, message, **kwargs):  # noqa: ANN001
+        copied_ids.append(int(message.id))
+        return 1, 0, 0, (int(message.id),)
+
+    monkeypatch.setattr(module, "_copy_single_with_optional_sanitize", fake_copy_single)
+
+    state: dict = {"sources": {}}
+    client = FakeDateClient(_history_messages(7))
+
+    # An exhausted budget never marks the walk done and never copies anything.
+    first = asyncio.run(
+        module._run_full_copy_phase(
+            client=client,
+            settings=_copy_all_settings(module, chunk_size=2),
+            state=state,
+            resolved_source_entities={},
+            entity_errors={},
+            deadline_monotonic=module.time.monotonic() - 1,
+        )
+    )
+    assert first["deadline_reached"] == 1
+    assert first["copied"] == 0
+    assert state.get("sources", {}).get("-1001", {}).get("copy_all_done", 0) == 0
+
+    # Resume: ids 7 and 6 were already delivered by the previous run, so the
+    # stored cursor is 6 and the walk continues with 5..1 exactly once.
+    state["sources"]["-1001"] = {"last_id": 0, "recent": [7, 6], "copy_all_max_id": 6}
+    second = asyncio.run(
+        module._run_full_copy_phase(
+            client=client,
+            settings=_copy_all_settings(module, chunk_size=2),
+            state=state,
+            resolved_source_entities={},
+            entity_errors={},
+            deadline_monotonic=float("inf"),
+        )
+    )
+
+    assert state["sources"]["-1001"]["copy_all_done"] == 1
+    assert sorted(copied_ids) == [1, 2, 3, 4, 5]
+    assert second["copied"] == 5
+    assert len(copied_ids) == len(set(copied_ids))
+
+
+def test_run_full_copy_phase_reset_recopies_recent_ids(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = load_module()
+    copied_ids: list[int] = []
+
+    async def fake_copy_single(client, destination_channel_id, source_id, message, **kwargs):  # noqa: ANN001
+        copied_ids.append(int(message.id))
+        return 1, 0, 0, (int(message.id),)
+
+    monkeypatch.setattr(module, "_copy_single_with_optional_sanitize", fake_copy_single)
+    monkeypatch.setenv("COPY_ALL_RESET", "1")
+
+    state: dict = {"sources": {"-1001": {"last_id": 0, "recent": [3, 2]}}}
+
+    stats = asyncio.run(
+        module._run_full_copy_phase(
+            client=FakeDateClient(_history_messages(3)),
+            settings=_copy_all_settings(module, chunk_size=10),
+            state=state,
+            resolved_source_entities={},
+            entity_errors={},
+            deadline_monotonic=float("inf"),
+        )
+    )
+
+    assert stats["reset"] == 1
+    assert stats["copied"] == 3
+    assert sorted(copied_ids) == [1, 2, 3]
+    assert state["sources"]["-1001"]["copy_all_done"] == 1
+    assert state["sources"]["-1001"]["last_id"] == 0
+
+
+def test_copy_source_messages_copy_all_skips_live_pass(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = load_module()
+    saved_states: list[dict] = []
+
+    async def fake_load_state(client):  # noqa: ANN001
+        return {"sources": {}}, 1
+
+    async def fake_save_state(client, state, state_message_id):  # noqa: ANN001
+        saved_states.append(json.loads(json.dumps(state)))
+        return 1, True
+
+    async def fake_prime(client, source_ids):  # noqa: ANN001
+        return {}, {}
+
+    async def fake_copy_single(client, destination_channel_id, source_id, message, **kwargs):  # noqa: ANN001
+        return 1, 0, 0, (int(message.id),)
+
+    async def fail_live(*args, **kwargs):  # noqa: ANN002, ANN003
+        raise AssertionError("live lookback pass must not run in COPY_ALL mode")
+
+    monkeypatch.setattr(module, "_load_state", fake_load_state)
+    monkeypatch.setattr(module, "_save_state", fake_save_state)
+    monkeypatch.setattr(module, "_prime_source_entities", fake_prime)
+    monkeypatch.setattr(module, "_fetch_recent_messages", fail_live)
+    monkeypatch.setattr(module, "_copy_single_with_optional_sanitize", fake_copy_single)
+    monkeypatch.setattr(module, "_save_run_window_ids", AsyncMock(return_value=[]))
+
+    result = asyncio.run(
+        module._copy_source_messages(
+            client=FakeDateClient(_history_messages(5)),
+            settings=_copy_all_settings(module, chunk_size=2),
+        )
+    )
+
+    assert result["copy_all"] == 1
+    assert result["copy_all_enabled"] == 1
+    assert result["copied"] == 5
+    assert result["fetched"] == 5
+    assert result["copy_all_sources_done"] == 1
+    assert result["partial"] == 0
+    final_state = saved_states[-1]
+    assert final_state["sources"]["-1001"]["copy_all_done"] == 1
+    assert final_state["sources"]["-1001"]["last_id"] == 0
+
+
+def test_maybe_continue_run_queues_followup_when_partial(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+    calls: dict = {}
+
+    def fake_spawn(chain):  # noqa: ANN001
+        calls["chain"] = chain
+        return True, "exec-123"
+
+    monkeypatch.delenv("AUTO_CONTINUE", raising=False)
+    monkeypatch.delenv("AUTO_CONTINUE_MAX_RUNS", raising=False)
+    monkeypatch.setattr(module, "_spawn_followup_execution", fake_spawn)
+
+    queued, execution_id, note = module._maybe_continue_run({"partial": 1}, 0)
+
+    assert queued is True
+    assert execution_id == "exec-123"
+    assert calls["chain"] == 1
+    assert "chain=1" in note
+
+
+def test_maybe_continue_run_skips_completed_run(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+    monkeypatch.setattr(
+        module, "_spawn_followup_execution", lambda chain: pytest.fail("must not chain")
+    )
+
+    queued, execution_id, note = module._maybe_continue_run({"partial": 0}, 0)
+
+    assert queued is False
+    assert execution_id == ""
+    assert "budget" in note
+
+
+def test_maybe_continue_run_respects_chain_limit(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+    monkeypatch.setenv("AUTO_CONTINUE_MAX_RUNS", "3")
+    monkeypatch.setattr(
+        module, "_spawn_followup_execution", lambda chain: pytest.fail("must not chain")
+    )
+
+    queued, _execution_id, note = module._maybe_continue_run({"partial": 1}, 2)
+
+    assert queued is False
+    assert "AUTO_CONTINUE_MAX_RUNS=3" in note
+
+
+def test_maybe_continue_run_honours_auto_continue_off(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+    monkeypatch.setenv("AUTO_CONTINUE", "0")
+    monkeypatch.setattr(
+        module, "_spawn_followup_execution", lambda chain: pytest.fail("must not chain")
+    )
+
+    queued, _execution_id, note = module._maybe_continue_run({"partial": 1}, 0)
+
+    assert queued is False
+    assert "AUTO_CONTINUE" in note
+
+
+def test_maybe_continue_run_skips_halted_run(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+    monkeypatch.setattr(
+        module, "_spawn_followup_execution", lambda chain: pytest.fail("must not chain")
+    )
+
+    queued, _execution_id, note = module._maybe_continue_run({"partial": 1, "halted": 1}, 0)
+
+    assert queued is False
+    assert "flood" in note
+
+
+def test_request_chain_depth_reads_trigger_body() -> None:
+    module = load_module()
+
+    assert module._request_chain_depth(SimpleNamespace(req=SimpleNamespace(body='{"chain": 4}'))) == 4
+    assert module._request_chain_depth(SimpleNamespace(req=SimpleNamespace(body=b'{"chain": 2}'))) == 2
+    assert module._request_chain_depth(SimpleNamespace(req=SimpleNamespace(body='{"source": "run_now"}'))) == 0
+    assert module._request_chain_depth(SimpleNamespace(req=SimpleNamespace(body=""))) == 0
+    assert module._request_chain_depth(SimpleNamespace(req=SimpleNamespace(body="not json"))) == 0
+    assert module._request_chain_depth(SimpleNamespace(req=None)) == 0
+
