@@ -36,6 +36,12 @@ In Appwrite Cloud -> Functions -> `Telegram Copier User Sync` -> Variables, set:
 - `SOURCE_CHANNEL_USERNAMES` (optional, comma-separated usernames in the same order as `SOURCE_CHANNEL_IDS`; useful when a public source is not present in the session's dialog/entity cache)
 - `LIMIT_PER_SOURCE` (optional, default `50`)
 - `LOOKBACK_MINUTES` (optional, default `60`) — for an hourly schedule use `120` so a delayed run still covers a full hour
+- `BACKFILL_ENABLED` (optional, default `0`) — copy history older than the lookback window in resumable chunks
+- `BACKFILL_SINCE_IST` (optional) — oldest message date to backfill, e.g. `2026-11-08` or `2026-11-08 22:00`. Blank uses `BACKFILL_DAYS`
+- `BACKFILL_DAYS` (optional, default `2`) — backfill floor in days when `BACKFILL_SINCE_IST` is blank. `0` means full history
+- `BACKFILL_CHUNK_SIZE` (optional, default `100`, max `1000`) — messages fetched per source per run
+- `RUN_TIME_BUDGET_SECONDS` (optional, default `240`, range `30..280`) — the run stops early and resumes on the next execution
+- `BACKFILL_RESET` (optional) — set `1` for one run to clear stored backfill progress
 - `ENABLE_CURSOR_GATE` (recommended `1` with `APPWRITE_DATABASE_ID`; skips messages at or below the stored per-source cursor so the same window is not re-copied every hour)
 - `COPY_MODE` (optional, default `copy`; reposts as your own post with no forward attribution. Set `0` or `forward` to forward instead)
 - `APPWRITE_DATABASE_ID` (**required** for persistent logs/state)
@@ -104,6 +110,7 @@ After applying the dashboard diagnostics update, redeploy `telegram-copier-webho
 
 - In Appwrite Cloud, confirm function `Telegram Copier User Sync` is enabled.
 - Schedule in `appwrite.json` is `"interval": 60` (hourly). Appwrite Cloud plans with the free/low tier reject anything shorter with `Your current plan allows intervals of 60 minutes or longer`.
+- Run chaining needs the `executions.write` scope, which `appwrite.json` declares for `telegram-copier-webhook`. Re-push after editing it; without the scope `continued=0` and `auto_continue_note` reports the 401 while the hourly schedule keeps working.
 - `LOOKBACK_MINUTES=120` gives one hour of overlap, so a delayed or failed run still covers the missed hour.
 - Open function logs and verify successful runs.
 
@@ -120,6 +127,23 @@ After applying the dashboard diagnostics update, redeploy `telegram-copier-webho
   - `telegram_copier_logs.message_ids_json`
   - `telegram_copier_state.payload_json`
 - Telegram Saved Messages should no longer receive run snapshot log messages.
+
+## Backfill Older Messages
+
+The scheduled path only scans `LOOKBACK_MINUTES` (max 24 hours). To copy older history, enable the resumable backfill mode.
+
+1. Set `BACKFILL_ENABLED=1`.
+2. Set the floor with `BACKFILL_SINCE_IST=2026-11-08` or `BACKFILL_DAYS=7`. Set `BACKFILL_DAYS=0` for full channel history.
+3. Keep `RUN_TIME_BUDGET_SECONDS=240`. Each run stops before the 300 s function timeout and resumes from the stored per-source cursor on the next execution.
+4. Run the function manually once with `python run_now.py`, then re-run it until the report shows `backfill_sources_done` equal to the number of sources and `partial=0`. Do not use the console's synchronous execute: Appwrite cuts synchronous executions at 30 s, so it answers `Timed out waiting for execution` while the run (budget 240 s) is still going.
+5. Set `BACKFILL_ENABLED=0` after the backfill finishes. Leaving it on is safe: completed sources fall back to the normal lookback path.
+6. Use `BACKFILL_RESET=1` for one run when you need to restart backfill from the newest message, or when you change `BACKFILL_SINCE_IST`.
+
+Notes:
+- Backfill walks newest to oldest in chunks. Within a chunk, messages are posted in ascending ID order; chunk order is newer to older.
+- Already-processed IDs are skipped using the per-source recent list. `FORCE_FULL_LOOKBACK_COPY=1` disables that skip and can create duplicates.
+- The recent list holds the last 2000 IDs. IDs older than that can be reposted during a deep backfill. Start from a bounded `BACKFILL_SINCE_IST` when you want to limit duplicates.
+- Backfill never advances the live cursor, so normal lookback processing keeps working while history is backfilled.
 
 ## 8. Troubleshooting
 

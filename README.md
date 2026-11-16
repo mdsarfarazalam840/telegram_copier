@@ -194,8 +194,16 @@ All variables are function-level Appwrite environment variables.
 
 | Variable | Default | Range / values | Purpose |
 | --- | --- | --- | --- |
-| `LIMIT_PER_SOURCE` | `50` | `1..200` | Max messages fetched per source per run. |
-| `LOOKBACK_MINUTES` | `60` | `1..1440` | Time window scanned by message timestamp. |
+| `LIMIT_PER_SOURCE` | `50` | `1..200` | Snapshot-recovery IDs fetched per source per run. Not a copy cap. |
+| `LOOKBACK_MINUTES` | `60` | `1..1440` | Time window used only when a source has no cursor yet (first run) and for snapshot lookup. |
+| `BACKFILL_ENABLED` | `0` | `0`/`1` | Process history older than the lookback window in resumable chunks. |
+| `BACKFILL_SINCE_IST` | *(empty)* | date / ISO | Oldest message date to copy. Blank uses `BACKFILL_DAYS`. |
+| `BACKFILL_DAYS` | `2` | `0..3650` | Backfill floor when `BACKFILL_SINCE_IST` is blank. `0` means full history. |
+| `BACKFILL_CHUNK_SIZE` | `100` | `1..1000` | Messages fetched per source per run. |
+| `RUN_TIME_BUDGET_SECONDS` | `240` | `30..280` | Stop before the 300 s function timeout; the next run resumes. |
+| `BACKFILL_RESET` | `0` | `0`/`1` | Clear stored backfill progress on this run. |
+| `AUTO_CONTINUE` | `1` | `0`/`1` | A run that stops on the time budget queues the next execution, so a backlog drains without waiting for the hourly tick. |
+| `AUTO_CONTINUE_MAX_RUNS` | `10` | `1..50` | Chain length cap. 10 runs ≈ 40 min, still under the 60 min schedule. Needs the `executions.write` function scope. |
 | `ENABLE_CURSOR_GATE` | `1` | `0`/`1` | Skip IDs at or below the source cursor. Disable only for replay/debug. |
 | `ENABLE_SNAPSHOT_RECOVERY` | `0` | `0`/`1` | Merge recent run-snapshot IDs into the candidate set. |
 | `ENABLE_TELEGRAM_STATE_FALLBACK` | `0` | `0`/`1` | Fall back to Saved Messages state when Appwrite is unavailable. |
@@ -339,8 +347,18 @@ and keep production secrets environment-scoped.
 | `telegram-copier-webhook` | `python-3.12` | 300s | every 60 minutes |
 | `telegram-copier-album-flush` | `python-3.12` | 30s | none (placeholder) |
 
-The current Appwrite plan rejects intervals below 60 minutes. With `LOOKBACK_MINUTES=120` the last hour
-stays fully covered even when a run is delayed.
+The current Appwrite plan rejects intervals below 60 minutes. Each run copies **everything posted after
+the last message it delivered**, per source, with no message-count cap: the fetch is cursor-based
+(`min_id=<last_id>`), oldest-first, so a backlog of 1,000 or 5,000 messages is drained over consecutive
+runs instead of falling outside a time window. `RUN_TIME_BUDGET_SECONDS` stops a run before the 300 s
+timeout and the next run resumes at the same cursor. Sources rotate between runs, so one busy
+channel cannot consume every budget.
+
+`AUTO_CONTINUE=1` (default) means a run that stops on its budget immediately queues the next
+execution, up to `AUTO_CONTINUE_MAX_RUNS` (10) in a chain — roughly 40 minutes of continuous copying
+per trigger, which stays inside the 60-minute schedule so two runs never overlap. This is what
+actually copies a 1,000–5,000 message backlog; each individual execution still stops at 240 s because
+that is the platform's hard limit.
 
 ---
 
@@ -352,6 +370,7 @@ stays fully covered even when a run is delayed.
 | `Invalid query: Syntax error` | Legacy Appwrite query strings. | The function sends JSON queries first and falls back to legacy only if rejected. Upgrade Appwrite or keep the fallback. |
 | `row_unique_constraint_violation` on `state_key=global` | A failed list call left the saver without a row ID. | Fixed: the loader returns the real `$id` and the saver reuses the existing row. |
 | State message too long | Oversized payload. | Handled by compaction; lower `LOOKBACK_MINUTES` or `LIMIT_PER_SOURCE` if it recurs. |
+| `Timed out waiting for execution` (400) | The function was triggered **synchronously**; Appwrite cuts the HTTP wait at 30 s while the run budget is 240 s. The execution itself keeps running. | Trigger it asynchronously (`async: true`, the Relayroom dashboard, or the hourly schedule) and read the execution status afterwards. |
 | Nothing copied for hours | Cursor ahead of the fetched range. | Cursor self-heal relaxes gating for that source; verify `g=` in `source_run_stats`. |
 | `403` / restricted chat | Source blocks forwarding. | Fallback repost path sends text/media directly. |
 | Web page media crash | `MessageMediaWebPage` is not sendable. | Treated as text; no action needed. |
@@ -406,6 +425,13 @@ List channel IDs for configuration:
 
 ```bash
 python print_dialog_ids.py
+```
+
+Trigger one run manually and watch it finish (asynchronous — a synchronous trigger is cut at 30 s
+with `Timed out waiting for execution`):
+
+```bash
+python run_now.py
 ```
 
 ---
